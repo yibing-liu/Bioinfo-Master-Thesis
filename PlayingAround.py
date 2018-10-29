@@ -10,3 +10,4 @@ for i in os.listdir(path):
     print(fileName)
     files.append(open())
     os.path.splitext(path)
+https://github.com/yibing-liu/Bioinfo-Master-Thesis.git
