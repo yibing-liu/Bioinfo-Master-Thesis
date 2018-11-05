@@ -1,5 +1,6 @@
 
 import os
+import re
 import pandas #read txt file as dataframe
 
 #file path
@@ -9,57 +10,61 @@ perBinFilePath = os.getcwd()+"/Data/logr_cn_per_bin"
 
 #generate raw count file fileName
 def getRawCountsFileName(embryoNumber, i):
-    rawCountsFileName = rawCountsFilePath + "TVEMB" + embryoNumber + "_" + i +".250K.101.sorted.count-t"
+    rawCountsFileName = "TVEMB" + str(embryoNumber) + "_" + str(i) +".250K.101.sorted.count-t"
     return rawCountsFileName
 
 #generate segmented file fileName
 def getSegmentFileName(embryoNumber, i):
-    segmentFileName = segmentFilePath + "TVEMB" + embryoNumber + "_" + i +".250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.breakpoints.txt"
+    segmentFileName = "TVEMB" + str(embryoNumber) + "_" + str(i) +".250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.breakpoints.txt"
     return segmentFileName
 
 #generate per bin file fileName
 def getPerBinFileName(embryoNumber, i):
-    perBinFileName = perBinFilePath + "TVEMB" + embryoNumber + "_" + i +".250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
+    perBinFileName = "TVEMB" + str(embryoNumber) + "_" + str(i) +".250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
     return perBinFileName
 
 #read in raw count file as dataframe
 def getRawFile(rawFileName):
-    rawCountsDataFrame = pandas.read_csv(rawFileName, sep = "\t", header = None)
+    fileName = rawCountsFilePath + "/" + rawFileName
+    rawCountsDataFrame = pandas.read_csv(fileName, sep = "\t", header = None)
     rawCountsDataFrame.columns = ["chr", "start", "end", "binSize", "length", "binReads", "systemControl"]
     return rawCountsDataFrame
 
 #read in segment file as dataframe
 def getSegmentFile(segmentFileName):
-    segmentDataFrame = pandas.read_csv(segmentFileName, sep = "\t")
+    fileName = segmentFilePath + "/" + segmentFileName
+    segmentDataFrame = pandas.read_csv(fileName, sep = "\t")
     return segmentDataFrame
 
 #read in logR cn /bin
 def getPerBinFile(perBinFileName):
-    perBinDataFrame = pandas.read_csv(perBinFileName, sep = "\t")
-    return perBinFileName
+    fileName = perBinFilePath + "/" + perBinFileName
+    perBinDataFrame = pandas.read_csv(fileName, sep = "\t")
+    return perBinDataFrame
 
-#get raw_counts files of given embryo
+#get files of given embryo
 def getFile(inputFileName):
-    if inputFileName.find("sorted.count"):
-        path = rawCountsFilePath + "/" + inputFileName
+    if bool("sorted.count" in inputFileName):
+        path = rawCountsFilePath
         for file in os.listdir(path):
             fileName = os.path.basename(file)
             if inputFileName == fileName:
-                getRawFile(inputFileName)
-    if fileName.find("gc_corrected.segments.copynumber.breakpoints"):
-        path = segmentFilePath + "/" + inputFileName
+                outputFile = getRawFile(inputFileName)
+    if bool("gc_corrected.segments.copynumber.breakpoints" in inputFileName):
+        path = segmentFilePath
         for file in os.listdir(path):
             fileName = os.path.basename(file)
             if inputFileName == fileName:
-                getSegmentFile(inputFileName)
-    if fileName.find("sorted.count.gamma_15.gc_corrected.segments.copynumber"):
-        path = perBinFilePath + "/" + inputFileName
+                outputFile = getSegmentFile(inputFileName)
+    if bool("sorted.count.gamma_15.gc_corrected.segments.copynumber" in inputFileName):
+        path = perBinFilePath
         for file in os.listdir(path):
             fileName = os.path.basename(file)
             if inputFileName == fileName:
-                getPerBinFile(inputFileName)
+                outputFile = getPerBinFile(inputFileName)
+    return outputFile
 
-#get bin list
+#get bin list  ##### BUG:
 def getBinList(embryoNumber):
     if (getRawFile(embryoNumber, 1) != None):
         fileName = getRawFile(embryoNumber, 1) #certain embryo's cell #1 doesnt exist
@@ -68,16 +73,9 @@ def getBinList(embryoNumber):
     binList = getRawFile(rawFileName)[1, 2, 3]
     return binList
 
-#paste interested columns in file
-def pasteColumn(fileName, columnNumber): #, outputFileName
-    file = getFile(fileName)
-    outputFile = pandas.dataframe(file, columns = [columnNumber])
-    print(outputFile)
-
 #getColumn(fileName, 1)
-def getColumn(fileName, columnNumber):
-    columnName = list(file)[columnNumber]
-    column = file[columnName]
+def getColumn(file, columnNumber):
+    column = file[list(file)[columnNumber]]
     return column
 
 #how many cells are linked to selected embryo
@@ -96,45 +94,35 @@ def getEmbryoCellNumber(embryoNumber):
 #output file per embryo
 def getEmbryoData(embryoNumber):
     embryoData = pandas.DataFrame()
-    n = getEmbryoCellNumber(embryoNumber)[0]
-    columnBinChr = getColumn(getRawFile(getRawCountsFileName(embryoNumber, n)), 1) #chromosome
-    columnBinStart = getColumn(getRawFile(getRawCountsFileName(embryoNumber, n)), 2) #start
-    columnBinEnd = getColumn(getRawFile(getRawCountsFileName(embryoNumber, n)), 3) #end
-    columnBinLength = getColumn(getRawFile(getRawCountsFileName(embryoNumber, n)), 5) #length
-    embryoData.append(columnBinChr, columnBinStart, columnBinEnd, columnBinLength)
+    separateData = dict()
     for i in getEmbryoCellNumber(embryoNumber):
-        columnBinReads = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 6) #binReads
-        columnBinReads.columns = ["cell"+i+"_binReads"]
-        embryoData.append(columnBinReads)
-        columnCN = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 4) #cn
-        columnCN.columns = ["cell"+i+"_CN"]
-        embryoData.append(columnCN)
-        columnLogR = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 6) #logR
-        columnLogR.columns = ["cell"+i+"_logR"]
-        embryoData.append(columnLogR)
-    #outputFileName = "embryo"+embryoNumber
-    #embryoData.to_csv(outputFileName, sep='\t', mode='a')
-    print(embryoData)
-#input
-def input():
-    embryoNumber = "4"#input('Embryo Number:')  ### BUG:
-    cellNumber = "1"#input('Cell Number:')  ##BUG
-    fileType = "raw_counts"#input('File Type:') ##BUG
+        separateData[i] = pandas.DataFrame()
+        separateData[i]["Chr"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 0) #chromosome
+        separateData[i]["Start"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 1) #start
+        separateData[i]["End"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 2) #end
+        separateData[i]["Length"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 4) #length
+        separateData[i]["cell"+i+"_binReads"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 5) #binReads
+        separateData[i]["cell"+i+"_CN"] = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 3) #cn
+        separateData[i]["cell"+i+"_logR"] = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 5) #logR
+        if i == getEmbryoCellNumber(embryoNumber)[0]:
+            embryoData = separateData[i]
+    embryoData = embryoData.merge (separateData[i])
+    outputFileName = "output_embryo" + str(embryoNumber) + ".txt"
+    embryoData.to_csv(outputFileName, sep='\t', mode='a') ###NEED TO SET OUTPUT-PATH
+    return embryoData
+
+#input fileName
+def inputparameter():
+    embryoNumber = input('Embryo Number:')
+    cellNumber = input('cell Number:')
+    fileType = input('File Type:')
     if fileType == "raw_counts":
-        fileName = getRawCountsFileName(embryoNumber, cellNumber)
+        inputfileName = getRawCountsFileName(embryoNumber, cellNumber)
     if fileType == "segmented":
-        fileName = getSegmentFileName(embryoNumber, cellNumber)
+        inputfileName = getSegmentFileName(embryoNumber, cellNumber)
     if fileType == "per bin":
-        fileName = getPerBinFileName(embryoNumber, cellNumber)
-    return fileName
+        inputfileName = getPerBinFileName(embryoNumber, cellNumber)
+    return inputfileName
 
 ##TESTER
-tester = getEmbryoCellNumber(1)
-
-
-
-
-
-
-
-print(tester)
+print(getEmbryoData(9))
