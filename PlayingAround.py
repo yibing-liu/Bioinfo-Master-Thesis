@@ -105,8 +105,8 @@ def getEmbryoData(embryoNumber):
         separateData[i]["cell"+i+"_CN"] = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 3) #cn
         separateData[i]["cell"+i+"_logR"] = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 5) #logR
         if i == getEmbryoCellNumber(embryoNumber)[0]:
-            embryoData = separateData[i]
-    embryoData = embryoData.merge (separateData[i])
+            embryoData = separateData[i] #initialise embryoData to proceed merge later
+        embryoData = embryoData.merge (separateData[i])
     outputFileName = "output_embryo" + str(embryoNumber) + ".txt"
     embryoData.to_csv(outputFileName, sep='\t', mode='a') ###NEED TO SET OUTPUT-PATH
     return embryoData
@@ -124,5 +124,144 @@ def inputparameter():
         inputfileName = getPerBinFileName(embryoNumber, cellNumber)
     return inputfileName
 
-##TESTER
-print(getEmbryoData(9))
+###################################################################################
+#CONTROL
+def getControlNumber(fileType):
+    cellNumber = []
+    if fileType == "control":
+        for file in os.listdir(rawCountsFilePath):
+            fileName = os.path.basename(file)
+            if fileName.startswith("CONTROL"):
+                currentCellNumber = (fileName.split("CONTROL_")[1]).split('.')[0]
+                cellNumber.append(currentCellNumber)
+                cellNumber.sort(key = int)
+        return cellNumber
+    if fileType == "empty":
+        cellNumber = []
+        return cellNumber
+    if fileType == "NC":
+        for file in os.listdir(rawCountsFilePath):
+            fileName = os.path.basename(file)
+            if fileName.startswith("NC"):
+                currentCellNumber = (fileName.split("NC_")[1]).split('.')[0]
+                cellNumber.append(currentCellNumber)
+                cellNumber.sort(key = int)
+        return cellNumber
+    if fileType == "PCMC":
+        for file in os.listdir(rawCountsFilePath):
+            fileName = os.path.basename(file)
+            if fileName.startswith("PC_MC"):
+                currentCellNumber = (fileName.split("PC_MC_")[1]).split('.')[0]
+                cellNumber.append(currentCellNumber)
+                cellNumber.sort(key = int)
+        return cellNumber
+    if fileType == "PCSC":
+        for file in os.listdir(rawCountsFilePath):
+            fileName = os.path.basename(file)
+            if fileName.startswith("PC_SC"):
+                currentCellNumber = (fileName.split("PC_SC_")[1]).split('.')[0]
+                cellNumber.append(currentCellNumber)
+                cellNumber.sort(key = int)
+        return cellNumber
+
+def getControlData(fileType):
+    controlData = pandas.DataFrame()
+    separateData = dict()
+    if fileType == "control":
+        for i in getControlNumber(fileType):
+            separateData[i] = pandas.DataFrame()
+            rawFileName = "CONTROL_" + str(i) + ".250K.101.sorted.count-t"
+            perBinFileName = "CONTROL_" + str(i) +".250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
+            separateData[i]["Chr"] = getColumn(getRawFile(rawFileName), 0) #chromosome
+            separateData[i]["Start"] = getColumn(getRawFile(rawFileName), 1) #start
+            separateData[i]["End"] = getColumn(getRawFile(rawFileName), 2) #end
+            separateData[i]["Length"] = getColumn(getRawFile(rawFileName), 4) #length
+            separateData[i]["cell"+i+"_binReads"] = getColumn(getRawFile(rawFileName), 5) #binReads
+            separateData[i]["cell"+i+"_CN"] = getColumn(getPerBinFile(perBinFileName), 3) #cn
+            separateData[i]["cell"+i+"_logR"] = getColumn(getPerBinFile(perBinFileName), 5) #logR
+            if i == getControlNumber(fileType)[0]:
+                controlData = separateData[i]
+            controlData = controlData.merge (separateData[i])
+        outputFileName = "output_control" + ".txt"
+        controlData.to_csv(outputFileName, sep='\t', mode='a') ###NEED TO SET OUTPUT-PATH
+        return controlData
+    if fileType == "empty":
+        separateData = pandas.DataFrame()
+        rawFileName = "empty_.250K.101.sorted.count-t"
+        perBinFileName = "empty_.250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
+        separateData["Chr"] = getColumn(getRawFile(rawFileName), 0) #chromosome
+        separateData["Start"] = getColumn(getRawFile(rawFileName), 1) #start
+        separateData["End"] = getColumn(getRawFile(rawFileName), 2) #end
+        separateData["Length"] = getColumn(getRawFile(rawFileName), 4) #length
+        separateData["binReads"] = getColumn(getRawFile(rawFileName), 5) #binReads
+        separateData["CN"] = getColumn(getPerBinFile(perBinFileName), 3) #cn
+        separateData["logR"] = getColumn(getPerBinFile(perBinFileName), 5) #logR
+        controlData = separateData
+        outputFileName = "output_empty" + ".txt"
+        controlData.to_csv(outputFileName, sep='\t', mode='a') ###NEED TO SET OUTPUT-PATH
+        return controlData
+    if fileType == "NC":
+        for i in getControlNumber(fileType):
+            separateData[i] = pandas.DataFrame()
+            rawFileName = "NC_" + str(i) + ".250K.101.sorted.count-t"
+            print(rawFileName)
+            perBinFileName = "NC_" + str(i) +".250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
+            print(perBinFileName)
+            separateData[i]["Chr"] = getColumn(getRawFile(rawFileName), 0) #chromosome
+            separateData[i]["Start"] = getColumn(getRawFile(rawFileName), 1) #start
+            separateData[i]["End"] = getColumn(getRawFile(rawFileName), 2) #end
+            separateData[i]["Length"] = getColumn(getRawFile(rawFileName), 4) #length
+            separateData[i]["cell"+i+"_binReads"] = getColumn(getRawFile(rawFileName), 5) #binReads
+            separateData[i]["cell"+i+"_CN"] = getColumn(getPerBinFile(perBinFileName), 3) #cn
+            separateData[i]["cell"+i+"_logR"] = getColumn(getPerBinFile(perBinFileName), 5) #logR
+            if i == getControlNumber(fileType)[0]:
+                controlData = separateData[i]
+            controlData = controlData.merge (separateData[i])
+        outputFileName = "output_NC" + ".txt"
+        controlData.to_csv(outputFileName, sep='\t', mode='a') ###NEED TO SET OUTPUT-PATH
+        return controlData
+    if fileType == "PCMC":
+        for i in getControlNumber(fileType):
+            separateData[i] = pandas.DataFrame()
+            rawFileName = "PC_MC_" + str(i) + ".250K.101.sorted.count-t"
+            perBinFileName = "PC_MC_" + str(i) +".250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
+            separateData[i]["Chr"] = getColumn(getRawFile(rawFileName), 0) #chromosome
+            separateData[i]["Start"] = getColumn(getRawFile(rawFileName), 1) #start
+            separateData[i]["End"] = getColumn(getRawFile(rawFileName), 2) #end
+            separateData[i]["Length"] = getColumn(getRawFile(rawFileName), 4) #length
+            separateData[i]["cell"+i+"_binReads"] = getColumn(getRawFile(rawFileName), 5) #binReads
+            separateData[i]["cell"+i+"_CN"] = getColumn(getPerBinFile(perBinFileName), 3) #cn
+            separateData[i]["cell"+i+"_logR"] = getColumn(getPerBinFile(perBinFileName), 5) #logR
+            if i == getControlNumber(fileType)[0]:
+                controlData = separateData[i]
+            controlData = controlData.merge (separateData[i])
+        outputFileName = "output_PC_MC" + ".txt"
+        controlData.to_csv(outputFileName, sep='\t', mode='a') ###NEED TO SET OUTPUT-PATH
+        return controlData
+    if fileType == "PCSC":
+        for i in getControlNumber(fileType):
+            separateData[i] = pandas.DataFrame()
+            rawFileName = "PC_SC_" + str(i) + ".250K.101.sorted.count-t"
+            perBinFileName = "PC_SC_" + str(i) +".250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
+            separateData[i]["Chr"] = getColumn(getRawFile(rawFileName), 0) #chromosome
+            separateData[i]["Start"] = getColumn(getRawFile(rawFileName), 1) #start
+            separateData[i]["End"] = getColumn(getRawFile(rawFileName), 2) #end
+            separateData[i]["Length"] = getColumn(getRawFile(rawFileName), 4) #length
+            separateData[i]["cell"+i+"_binReads"] = getColumn(getRawFile(rawFileName), 5) #binReads
+            separateData[i]["cell"+i+"_CN"] = getColumn(getPerBinFile(perBinFileName), 3) #cn
+            separateData[i]["cell"+i+"_logR"] = getColumn(getPerBinFile(perBinFileName), 5) #logR
+            if i == getControlNumber(fileType)[0]:
+                controlData = separateData[i]
+            controlData = controlData.merge (separateData[i])
+        outputFileName = "output_PC_SC" + ".txt"
+        controlData.to_csv(outputFileName, sep='\t', mode='a') ###NEED TO SET OUTPUT-PATH
+        return controlData
+
+#############################################################################################
+##OPERATOR
+for i in range(1,48):
+    getEmbryoData(i)
+
+fileType = ["control", "empty", "NC", "PCMC", "PCSC"]
+for i in fileType:
+    getControlData(i)
