@@ -6,29 +6,7 @@ library(ggplot2)
 
 getwd()
 
-#load embryo cell data #47=30cells
-TVEMB47 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB47.txt", sep = "\t", header = TRUE)
-TVEMB47$position = (TVEMB47$End - TVEMB47$Start)/2 + TVEMB47$Start
-
-chromosomeNumber = c(seq(1,22), "X")
-columnNumber = c(seq(8,ncol(TVEMB47)-1,3), ncol(TVEMB47))
-plotDataCombined = data.frame()
-
-for (i in chromosomeNumber){
-  plotData = data.frame(filter(TVEMB47, (TVEMB47$Chr==i)))[columnNumber]
-  logR = melt(plotData, "position")
-  logR$Chr = i
-  plotDataCombined = rbind(plotDataCombined, logR)
-}
-
-#### order chromosome!!!!!
-ggplot(plotDataCombined, aes(position, value, group=variable, color = variable)) +
-  geom_point(size = 0.5) + 
-  facet_wrap(~Chr, scales = "free_x", ncol=4)+
-  labs(x = "Position", y = "logR", color = NULL) +
-  theme(legend.position = "bottom")
-
-#plot all embryo cells
+#plot all embryo cells logR+cn
 for (i in 1:47){
   fileName = paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB", i, sep = ""), "txt", sep = ".")
   data = read.csv(fileName, sep = "\t", header = TRUE)
@@ -74,6 +52,6 @@ for (i in 1:47){
   
 }
 
-
+#### order chromosome!!!!!
 ############################################################################
 
