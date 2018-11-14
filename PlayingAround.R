@@ -1,23 +1,79 @@
+install.packages("dplyr")
 library(readr)
+library(dplyr)
+library(reshape2)
+library(ggplot2)
 
 getwd()
-setwd("/Users/Yibing/Desktop/Leuven/Thesis")
 
-#raw data
-rawDataHeader = c("chr", "start", "end", "binSize", "length", "readNumber", "???")
-TVEMB1_1_250K_101_sorted = read.csv("/Users/Yibing/Desktop/Leuven/Thesis/data/raw_counts/TVEMB1_1.250K.101.sorted.count-t", sep = "\t", header = FALSE)
-TVEMB1_2.250K.101.sorted = read.csv("/Users/Yibing/Desktop/Leuven/Thesis/data/raw_counts/TVEMB1_2.250K.101.sorted.count-t", sep = "\t", header = FALSE)
-colnames(TVEMB1_1_250K_101_sorted) = rawDataHeader
-colnames(TVEMB1_2.250K.101.sorted) = rawDataHeader
-View(TVEMB1_1_250K_101_sorted)
-View(TVEMB1_2.250K.101.sorted)
+#load embryo cell data #47=30cells
+TVEMB47 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB47.txt", sep = "\t", header = TRUE)
+TVEMB47$position = (TVEMB47$End - TVEMB47$Start)/2 + TVEMB47$Start
 
-#logR cn per bin
-TVEMB1_1_250K_101_sorted_count_gamma_15_gc_corrected_segments_copynumber = read.csv("Desktop/Leuven/Thesis/data_for_yibing/logr_cn_per_bin/TVEMB1_1.250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt", sep = "\t")
-View(TVEMB1_1_250K_101_sorted_count_gamma_15_gc_corrected_segments_copynumber)
+chromosomeNumber = c(seq(1,22), "X")
+columnNumber = c(seq(8,ncol(TVEMB47)-1,3), ncol(TVEMB47))
+plotDataCombined = data.frame()
 
-#segmented cell
-TVEMB1_1_250K_101_sorted_count_gamma_15_gc_corrected_segments_copynumber_breakpoints = read.csv("Desktop/Leuven/Thesis/data_for_yibing/segmented/TVEMB1_1.250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.breakpoints.txt", sep = "\t")
-View(TVEMB1_1_250K_101_sorted_count_gamma_15_gc_corrected_segments_copynumber_breakpoints)
+for (i in chromosomeNumber){
+  plotData = data.frame(filter(TVEMB47, (TVEMB47$Chr==i)))[columnNumber]
+  logR = melt(plotData, "position")
+  logR$Chr = i
+  plotDataCombined = rbind(plotDataCombined, logR)
+}
 
+#### order chromosome!!!!!
+ggplot(plotDataCombined, aes(position, value, group=variable, color = variable)) +
+  geom_point(size = 0.5) + 
+  facet_wrap(~Chr, scales = "free_x", ncol=4)+
+  labs(x = "Position", y = "logR", color = NULL) +
+  theme(legend.position = "bottom")
+
+#plot all embryo cells
+for (i in 1:47){
+  fileName = paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB", i, sep = ""), "txt", sep = ".")
+  data = read.csv(fileName, sep = "\t", header = TRUE)
+  data$position = (data$End - data$Start)/2 + data$Start
+  
+  chromosomeNumber = c(seq(1,22), "X")
+  columnNumber_logR = c(seq(8,ncol(data)-1,3), ncol(data))
+  columnNumber_cn = c(seq(7,ncol(data)-2,3), ncol(data))
+  plotDataCombined_logR = data.frame()
+  plotDataCombined_cn = data.frame()
+  
+  for (j in chromosomeNumber){
+    plotData_logR = data.frame(filter(data, (data$Chr==j)))[columnNumber_logR]
+    plotData_cn = data.frame(filter(data, (data$Chr==j)))[columnNumber_cn]
+    logR = melt(plotData_logR, "position")
+    cn = melt(plotData_cn, "position")
+    logR$Chr = j
+    cn$Chr = j
+    plotDataCombined_logR = rbind(plotDataCombined_logR, logR)
+    plotDataCombined_cn = rbind(plotDataCombined_cn, cn)
+  }
+  
+  plotDataName_logR = paste(paste("TVEMB", i, sep = ""), "_logR.pdf", sep = "")
+  plotDataName_cn = paste(paste("TVEMB", i, sep = ""), "_cn.pdf", sep = "")
+  
+  pdf(plotDataName_logR)
+  plot = ggplot(plotDataCombined_logR, aes(position, value, group=variable, color = variable)) +
+    geom_point(size = 0.2) + 
+    facet_wrap(~Chr, shrink = TRUE, scales = "free_x", ncol=3)+
+    labs(x = "Position", y = "logR", color = NULL) +
+    theme(legend.position = "bottom")
+  print(plot)
+  dev.off()
+  
+  pdf(plotDataName_cn)
+  plot = ggplot(plotDataCombined_cn, aes(position, value, group=variable, color = variable)) +
+    geom_point(size = 0.2) + 
+    facet_wrap(~Chr, shrink = TRUE, scales = "free_x", ncol=3)+
+    labs(x = "Position", y = "cn", color = NULL) +
+    theme(legend.position = "bottom")
+  print(plot)
+  dev.off()
+  
+}
+
+
+############################################################################
 
