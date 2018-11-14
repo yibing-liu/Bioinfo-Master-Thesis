@@ -35,7 +35,7 @@ for (i in 1:47){
   pdf(plotDataName_logR)
   plot = ggplot(plotDataCombined_logR, aes(position, value, group=variable, color = variable)) +
     geom_point(size = 0.2) + 
-    facet_wrap(~Chr, shrink = TRUE, scales = "free_x", ncol=3)+
+    facet_wrap(~Chr, scales = "free_x", ncol=3)+
     labs(x = "Position", y = "logR", color = NULL) +
     theme(legend.position = "bottom")
   print(plot)
@@ -44,7 +44,7 @@ for (i in 1:47){
   pdf(plotDataName_cn)
   plot = ggplot(plotDataCombined_cn, aes(position, value, group=variable, color = variable)) +
     geom_point(size = 0.2) + 
-    facet_wrap(~Chr, shrink = TRUE, scales = "free_x", ncol=3)+
+    facet_wrap(~Chr, scales = "free_x", ncol=3)+
     labs(x = "Position", y = "cn", color = NULL) +
     theme(legend.position = "bottom")
   print(plot)
@@ -52,6 +52,8 @@ for (i in 1:47){
   
 }
 
-#### order chromosome!!!!!
+#### order chromosome!!!!
+#### x y axis scale!!!!
+####graph region enlarge!!!!
 ############################################################################
 
