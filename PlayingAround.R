@@ -29,9 +29,9 @@ for (i in 1:47){
     plotDataCombined_cn = rbind(plotDataCombined_cn, cn)
   }
   
-  plotDataName_logR = paste(paste("TVEMB", i, sep = ""), "_logR.pdf", sep = "")
-  plotDataName_cn = paste(paste("TVEMB", i, sep = ""), "_cn.pdf", sep = "")
-  
+  plotDataName_logR = paste(paste("TVEMB", i, sep = ""), "_logR", sep = "")
+  plotDataName_cn = paste(paste("TVEMB", i, sep = ""), "_cn", sep = "")
+
   pdf(plotDataName_logR)
   plot = ggplot(plotDataCombined_logR, aes(position, value, group=variable, color = variable)) +
     geom_point(size = 0.2) + 
@@ -41,7 +41,7 @@ for (i in 1:47){
   print(plot)
   dev.off()
   
-  pdf(plotDataName_cn)
+  png(plotDataName_cn)
   plot = ggplot(plotDataCombined_cn, aes(position, value, group=variable, color = variable)) +
     geom_point(size = 0.2) + 
     facet_wrap(~Chr, scales = "free_x", ncol=3)+
@@ -57,3 +57,12 @@ for (i in 1:47){
 ####graph region enlarge!!!!
 ############################################################################
 
+#Poisson
+data_47 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB47.txt", sep = "\t", header = TRUE)
+data_47$position = (data_47$End - data_47$Start)/2 + data_47$Start
+columnNumber_binReads = c(seq(6,ncol(data_47)-2,3), ncol(data_47))
+data_47_binReads = data_47[columnNumber_binReads]
+binReads = (melt(data_47_binReads, "position"))
+binReads = binReads[order(binReads$position),]
+binReads_1 = data.frame(filter(binReads, (binReads$position==unique(binReads$position)[1])))
+ggplot(binReads_1, aes(value)) + geom_density() + labs(x = "Bin Reads", y = "Density", color = NULL)
