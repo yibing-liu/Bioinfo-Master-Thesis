@@ -58,11 +58,20 @@ for (i in 1:47){
 ############################################################################
 
 #Poisson
+install.packages("fitdistrplus")
+library(fitdistrplus)
+
+###################
 data_47 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB47.txt", sep = "\t", header = TRUE)
 data_47$position = (data_47$End - data_47$Start)/2 + data_47$Start
-columnNumber_binReads = c(seq(6,ncol(data_47)-2,3), ncol(data_47))
-data_47_binReads = data_47[columnNumber_binReads]
-binReads = (melt(data_47_binReads, "position"))
-binReads = binReads[order(binReads$position),]
-binReads_1 = data.frame(filter(binReads, (binReads$position==unique(binReads$position)[1])))
-ggplot(binReads_1, aes(value)) + geom_density() + labs(x = "Bin Reads", y = "Density", color = NULL)
+columnNumber_cn = c(seq(7,ncol(data_47)-2,3), ncol(data_47))
+data_47_cn = data_47[columnNumber_cn]
+cn = (melt(data_47_cn, "position"))
+cn = cn[order(cn$position),]
+plotData = data.frame(filter(cn, (cn$position==unique(cn$position)[1]))) #bin #1
+ggplot(plotData, aes(value)) + geom_density() + labs(x = "cn", y = "Density", color = NULL) 
+
+
+poisson_cn = fitdist(plotData$value, 'pois', method = 'mme')
+print(poisson_cn)
+###### fitdist method ????? no maximum likelihood?
