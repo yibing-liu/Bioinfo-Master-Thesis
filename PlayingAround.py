@@ -4,9 +4,10 @@ import re
 import pandas #read txt file as dataframe
 
 #file path
-rawCountsFilePath = os.getcwd()+"/Data/raw_counts"
-segmentFilePath = os.getcwd()+"/Data/segmented"
-perBinFilePath = os.getcwd()+"/Data/logr_cn_per_bin"
+rawCountsFilePath = os.getcwd() + "/Data/raw_counts"
+segmentFilePath = os.getcwd() + "/Data/segmented"
+perBinFilePath = os.getcwd() + "/Data/logr_cn_per_bin"
+embryoFilePath = os.getcwd() + "/Output"
 
 #generate raw count file fileName
 def getRawCountsFileName(embryoNumber, i):
@@ -107,8 +108,33 @@ def getEmbryoData(embryoNumber):
             embryoData = separateData[i] #initialise embryoData to proceed merge later
         embryoData = embryoData.merge (separateData[i])
     outputFileName = "TVEMB" + str(embryoNumber) + ".txt"
-    embryoData.to_csv(outputFileName, sep='\t', mode='a') ###NEED TO SET OUTPUT-PATH
+    embryoData.to_csv(outputFileName, sep="\t", mode="a") ###NEED TO SET OUTPUT-PATH
     return embryoData
+
+##############################################################################################
+#get EmbryodatafileName
+def getEmbryoFile(embryoFileName):
+    fileName = embryoFilePath + "/" + embryoFileName
+    embryoFileDataFrame = pandas.read_csv(fileName, sep = "\t")
+    return embryoFileDataFrame
+
+#generate data frame for plot density vs logR/bin
+def getCombinedLogRData():
+    combinedLogRData = pandas.DataFrame()
+    separateData = dict()
+    embryoNumber = 1
+    cellNumber = 1
+    combinedLogRData["Chr"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, cellNumber)), 0) #chromosome
+    combinedLogRData["Start"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, cellNumber)), 1) #start
+    combinedLogRData["End"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, cellNumber)), 2) #end
+    combinedLogRData["Length"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, cellNumber)), 4) #length
+    for i in range(1,48):
+        for j in range(1,len(getEmbryoCellNumber(i))+1):
+            combinedLogRData["TVEMB"+str(i)+"Cell"+str(getEmbryoCellNumber(i)[j-1])+"_logR"] = getColumn(getEmbryoFile("TVEMB" + str(i) + ".txt"), (4+3*j))
+    outputFileName = "combinedLogRData.txt"
+    combinedLogRData.to_csv(outputFileName, sep="\t", mode="a")
+    return combinedLogRData
+
 
 #input fileName
 def inputparameter():
@@ -227,12 +253,13 @@ def getControlData(fileType):
         return controlData
 
 #############################################################################################
-##OPERATOR
+#OPERATOR
 #for i in range(1,48):
 #    getEmbryoData(i)
 
-fileType = ["control", "empty", "NC", "PCMC", "PCSC"]
-for i in fileType:
-    getControlData(i)
-#for i in getControlNumber(fileType):
-#    print(i)
+getCombinedLogRData()
+
+
+#fileType = ["control", "empty", "NC", "PCMC", "PCSC"]
+#for i in fileType:
+#    getControlData(i)
