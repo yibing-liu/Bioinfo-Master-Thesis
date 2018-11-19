@@ -131,11 +131,34 @@ def getCombinedLogRData():
     for i in range(1,48):
         for j in range(1,len(getEmbryoCellNumber(i))+1):
             combinedLogRData["TVEMB"+str(i)+"Cell"+str(getEmbryoCellNumber(i)[j-1])+"_logR"] = getColumn(getEmbryoFile("TVEMB" + str(i) + ".txt"), (4+3*j))
-    outputFileName = "combinedLogRData.txt"
-    combinedLogRData.to_csv(outputFileName, sep="\t", mode="a")
+    combinedLogRData.to_csv("combinedLogRData.txt", sep="\t", mode="a")
     return combinedLogRData
 
 
+def getSeparateCopyNumberData():
+    copyNumber0Data = pandas.DataFrame()
+    copyNumber1Data = pandas.DataFrame()
+    copyNumber2Data = pandas.DataFrame()
+    copyNumber3Data = pandas.DataFrame()
+    for i in range(1,48):
+        for j in range(0,len(getEmbryoCellNumber(i))):
+                dataframe = getPerBinFile(getPerBinFileName(i, getEmbryoCellNumber(i)[j]))
+                for n in range(0,len(dataframe)):
+                    if (dataframe.iloc[n]["CN_segment"] == 0):
+                        copyNumber0Data.append(dataframe.iloc[n])
+                    if (dataframe.iloc[n]["CN_segment"] == 1):
+                        copyNumber1Data.append(dataframe.iloc[n])
+                    if (dataframe.iloc[n]["CN_segment"] == 2):
+                        copyNumber2Data.append(dataframe.iloc[n])
+                    if (dataframe.iloc[n]["CN_segment"] == 3):
+                        copyNumber3Data.append(dataframe.iloc[n])
+    copyNumber0Data.to_csv("combinedCN0.txt", sep="\t", mode="a")
+    copyNumber1Data.to_csv("combinedCN1.txt", sep="\t", mode="a")
+    copyNumber2Data.to_csv("combinedCN2.txt", sep="\t", mode="a")
+    copyNumber3Data.to_csv("combinedCN3.txt", sep="\t", mode="a")
+
+
+###############################################################################################
 #input fileName
 def inputparameter():
     embryoNumber = input('Embryo Number:')
@@ -257,7 +280,9 @@ def getControlData(fileType):
 #for i in range(1,48):
 #    getEmbryoData(i)
 
-getCombinedLogRData()
+#getCombinedLogRData()
+
+#getSeparateCopyNumberData()
 
 
 #fileType = ["control", "empty", "NC", "PCMC", "PCSC"]
