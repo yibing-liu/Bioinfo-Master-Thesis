@@ -31,32 +31,46 @@ for (i in 1:47){
   
   plotDataName_logR = paste(paste("TVEMB", i, sep = ""), "_logR", sep = "")
   plotDataName_cn = paste(paste("TVEMB", i, sep = ""), "_cn", sep = "")
-
-  pdf(plotDataName_logR)
+  
+  pdf(plotDataName_logR, height = 16, width = 12)
   plot = ggplot(plotDataCombined_logR, aes(position, value, group=variable, color = variable)) +
     geom_point(size = 0.2) + 
-    facet_wrap(~Chr, scales = "free_x", ncol=3)+
+    facet_wrap(~Chr, scales = "free_x", ncol = 3) +
     labs(x = "Position", y = "logR", color = NULL) +
     theme(legend.position = "bottom")
   print(plot)
   dev.off()
   
-  png(plotDataName_cn)
+  png(plotDataName_cn, height = 16, width = 12)
   plot = ggplot(plotDataCombined_cn, aes(position, value, group=variable, color = variable)) +
     geom_point(size = 0.2) + 
-    facet_wrap(~Chr, scales = "free_x", ncol=3)+
+    facet_wrap(~Chr, scales = "free_x", ncol = 3) +
     labs(x = "Position", y = "cn", color = NULL) +
     theme(legend.position = "bottom")
   print(plot)
   dev.off()
-  
 }
+
 
 #### order chromosome!!!!
 #### x y axis scale!!!!
 ####graph region enlarge!!!!
 ############################################################################
+#density vs logR
+#all cells together
+dataCombined = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Output/combinedLogRData.txt", sep = "\t", header = TRUE)
+dataCombined$position = (dataCombined$End - dataCombined$Start)/2 + dataCombined$Start
+dim(dataCombined)
+dataCombined = dataCombined[c(6:322)]
+logRCombined = melt(dataCombined, "position")
+ggplot(logRCombined, aes(value)) + geom_density() + labs(x = "logR", y = "Density", color = NULL) 
 
+poisson_logR = fitdist(logRCombined$value, 'pois', method = 'mme')   ?????methods
+
+
+
+
+##########################################################################################
 #Poisson
 install.packages("fitdistrplus")
 library(fitdistrplus)
@@ -69,7 +83,7 @@ data_47_cn = data_47[columnNumber_cn]
 cn = (melt(data_47_cn, "position"))
 cn = cn[order(cn$position),]
 plotData = data.frame(filter(cn, (cn$position==unique(cn$position)[1]))) #bin #1
-ggplot(plotData, aes(value)) + geom_density() + labs(x = "cn", y = "Density", color = NULL) 
+ggplot(plotData, aes(value)) + geom_density() + labs(x = "bin", y = "Density", color = NULL) 
 
 
 poisson_cn = fitdist(plotData$value, 'pois', method = 'mme')
