@@ -136,22 +136,23 @@ def getCombinedLogRData():
 
 
 def getSeparateCopyNumberData():
-    copyNumber0Data = pandas.DataFrame()
-    copyNumber1Data = pandas.DataFrame()
-    copyNumber2Data = pandas.DataFrame()
-    copyNumber3Data = pandas.DataFrame()
+    copyNumber0Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment"])
+    copyNumber1Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment"])
+    copyNumber2Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment"])
+    copyNumber3Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment"])
     for i in range(1,48):
         for j in range(0,len(getEmbryoCellNumber(i))):
-                dataframe = getPerBinFile(getPerBinFileName(i, getEmbryoCellNumber(i)[j]))
-                for n in range(0,len(dataframe)):
-                    if (dataframe.iloc[n]["CN_segment"] == 0):
-                        copyNumber0Data.append(dataframe.iloc[n])
-                    if (dataframe.iloc[n]["CN_segment"] == 1):
-                        copyNumber1Data.append(dataframe.iloc[n])
-                    if (dataframe.iloc[n]["CN_segment"] == 2):
-                        copyNumber2Data.append(dataframe.iloc[n])
-                    if (dataframe.iloc[n]["CN_segment"] == 3):
-                        copyNumber3Data.append(dataframe.iloc[n])
+            dataframe = getPerBinFile(getPerBinFileName(i, getEmbryoCellNumber(i)[j]))
+            for n in range(0,len(dataframe)):
+                currentRow = [dataframe.iloc[n]["chr"], dataframe.iloc[n]["start"], dataframe.iloc[n]["end"], dataframe.iloc[n]["CN"], dataframe.iloc[n]["CN_segment"], dataframe.iloc[n]["LogR"], dataframe.iloc[n]["LogR_segment"]]
+                if (dataframe.iloc[n]["CN_segment"] == 0):
+                    copyNumber0Data.loc[len(copyNumber2Data)] = currentRow
+                if (dataframe.iloc[n]["CN_segment"] == 1):
+                    copyNumber1Data.loc[len(copyNumber2Data)] = currentRow
+                if (dataframe.iloc[n]["CN_segment"] == 2):
+                    copyNumber2Data.loc[len(copyNumber2Data)] = currentRow
+                if (dataframe.iloc[n]["CN_segment"] == 3):
+                    copyNumber3Data.loc[len(copyNumber2Data)] = currentRow
     copyNumber0Data.to_csv("combinedCN0.txt", sep="\t", mode="a")
     copyNumber1Data.to_csv("combinedCN1.txt", sep="\t", mode="a")
     copyNumber2Data.to_csv("combinedCN2.txt", sep="\t", mode="a")
@@ -282,7 +283,7 @@ def getControlData(fileType):
 
 #getCombinedLogRData()
 
-#getSeparateCopyNumberData()
+getSeparateCopyNumberData()
 
 
 #fileType = ["control", "empty", "NC", "PCMC", "PCSC"]
