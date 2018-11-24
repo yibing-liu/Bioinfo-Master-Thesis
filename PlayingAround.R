@@ -133,7 +133,7 @@ logRCopyNumber1_corrected = melt(dataCopyNumber1_corrected, "position")
 plot_cn1 = ggplot(logRCopyNumber1_corrected, aes(value)) + geom_density() + labs(x = "logR_corrected_cn1", y = "Density", color = NULL) 
 logRCopyNumber1_corrected$value = logRCopyNumber1_corrected$value + 1
 poisson_logR_cn1 = fitdist(logRCopyNumber1_corrected$value, "pois", method = 'mme')   #?????methods
-poisson_logR_cn1
+poisson_logR_cn1 #0.9999388
 
 #cn=2
 dataCopyNumber2_corrected = dataCopyNumber2_corrected[c(9, 10)]
@@ -141,7 +141,7 @@ logRCopyNumber2_corrected = melt(dataCopyNumber2_corrected, "position")
 plot_cn2 = ggplot(logRCopyNumber2_corrected, aes(value)) + geom_density() + labs(x = "logR_corrected_cn2", y = "Density", color = NULL) 
 logRCopyNumber2_corrected$value = logRCopyNumber2_corrected$value + 2
 poisson_logR_cn2 = fitdist(logRCopyNumber2_corrected$value, "pois",  method = 'mme')  #?????methods
-poisson_logR_cn2
+poisson_logR_cn2 #3.999995
 
 #cn=3
 dataCopyNumber3_corrected = dataCopyNumber3_corrected[c(9, 10)]
@@ -152,7 +152,7 @@ poisson_logR_cn3 = fitdist(logRCopyNumber3_corrected$value, 'pois', method = 'ml
 poisson_logR_cn3
 
 grid.arrange(plot_cn0, plot_cn1, plot_cn2, plot_cn3, ncol = 2, nrow = 2)
-
+###### fitdist method ????? no maximum likelihood?#################
 #############################################################################################
 #Poisson
 install.packages("fitdistrplus")
@@ -171,5 +171,4 @@ ggplot(plotData, aes(value)) + geom_density() + labs(x = "bin", y = "Density", c
 
 poisson_cn = fitdist(plotData$value, 'pois', method = 'mle')
 print(poisson_cn)
-###### fitdist method ????? no maximum likelihood?
-?fitdist
+
