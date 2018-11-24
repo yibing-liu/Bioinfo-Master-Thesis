@@ -134,7 +134,7 @@ def getCombinedLogRData():
     combinedLogRData.to_csv("combinedLogRData.txt", sep="\t", mode="a")
     return combinedLogRData
 
-
+#without #reads/total reads
 def getSeparateCopyNumberData():
     copyNumber0Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment"])
     copyNumber1Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment"])
@@ -146,17 +146,49 @@ def getSeparateCopyNumberData():
             for n in range(0,len(dataframe)):
                 currentRow = [dataframe.iloc[n]["chr"], dataframe.iloc[n]["start"], dataframe.iloc[n]["end"], dataframe.iloc[n]["CN"], dataframe.iloc[n]["CN_segment"], dataframe.iloc[n]["LogR"], dataframe.iloc[n]["LogR_segment"]]
                 if (dataframe.iloc[n]["CN_segment"] == 0):
-                    copyNumber0Data.loc[len(copyNumber2Data)] = currentRow
+                    copyNumber0Data.loc[len(copyNumber0Data)] = currentRow
                 if (dataframe.iloc[n]["CN_segment"] == 1):
-                    copyNumber1Data.loc[len(copyNumber2Data)] = currentRow
+                    copyNumber1Data.loc[len(copyNumber1Data)] = currentRow
                 if (dataframe.iloc[n]["CN_segment"] == 2):
                     copyNumber2Data.loc[len(copyNumber2Data)] = currentRow
                 if (dataframe.iloc[n]["CN_segment"] == 3):
-                    copyNumber3Data.loc[len(copyNumber2Data)] = currentRow
+                    copyNumber3Data.loc[len(copyNumber3Data)] = currentRow
     copyNumber0Data.to_csv("combinedCN0.txt", sep="\t", mode="a")
     copyNumber1Data.to_csv("combinedCN1.txt", sep="\t", mode="a")
     copyNumber2Data.to_csv("combinedCN2.txt", sep="\t", mode="a")
     copyNumber3Data.to_csv("combinedCN3.txt", sep="\t", mode="a")
+
+# #reads/total reads
+def getCurrentBinReads(embryoNumber, cellNumber, rowNumber):
+    currentBinReads = getRawFile(getRawCountsFileName(embryoNumber, cellNumber)).loc[rowNumber-1][5]
+    return currentBinReads
+
+def getTotalBinReads(embryoNumber, cellNumber):
+    totalBinReads = getColumn(getRawFile(getRawCountsFileName(embryoNumber, cellNumber)),5).sum()
+    return totalBinReads
+
+def getCorrectedSeparateCopyNumberData():
+    correctedCopyNumber0Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected"])
+    correctedCopyNumber1Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected"])
+    correctedCopyNumber2Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected"])
+    correctedCopyNumber3Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected"])
+    for i in range(1,48):
+        for j in range(0,len(getEmbryoCellNumber(i))):
+            dataframe = getPerBinFile(getPerBinFileName(i, getEmbryoCellNumber(i)[j]))
+            for n in range(0,len(dataframe)):
+                currentRow = [dataframe.iloc[n]["chr"], dataframe.iloc[n]["start"], dataframe.iloc[n]["end"], dataframe.iloc[n]["CN"], dataframe.iloc[n]["CN_segment"], dataframe.iloc[n]["LogR"], dataframe.iloc[n]["LogR_segment"], (dataframe.iloc[n]["LogR"]*getCurrentBinReads(i, getEmbryoCellNumber(i)[j], (n+1))/getTotalBinReads(i, getEmbryoCellNumber(i)[j]))]
+                if (dataframe.iloc[n]["CN_segment"] == 0):
+                    correctedCopyNumber0Data.loc[len(correctedCopyNumber0Data)] = currentRow
+                if (dataframe.iloc[n]["CN_segment"] == 1):
+                    correctedCopyNumber1Data.loc[len(correctedCopyNumber1Data)] = currentRow
+                if (dataframe.iloc[n]["CN_segment"] == 2):
+                    correctedCopyNumber2Data.loc[len(correctedCopyNumber2Data)] = currentRow
+                if (dataframe.iloc[n]["CN_segment"] == 3):
+                    correctedCopyNumber3Data.loc[len(correctedCopyNumber3Data)] = currentRow
+    correctedCopyNumber0Data.to_csv("combinedCN0_corrected.txt", sep="\t", mode="a")
+    correctedCopyNumber1Data.to_csv("combinedCN1_corrected.txt", sep="\t", mode="a")
+    correctedCopyNumber2Data.to_csv("combinedCN2_corrected.txt", sep="\t", mode="a")
+    correctedCopyNumber3Data.to_csv("combinedCN3_corrected.txt", sep="\t", mode="a")
 
 
 ###############################################################################################
@@ -283,8 +315,8 @@ def getControlData(fileType):
 
 #getCombinedLogRData()
 
-getSeparateCopyNumberData()
-
+#getSeparateCopyNumberData()
+getCorrectedSeparateCopyNumberData()
 
 #fileType = ["control", "empty", "NC", "PCMC", "PCSC"]
 #for i in fileType:
