@@ -141,7 +141,8 @@ logRCopyNumber2_corrected = melt(dataCopyNumber2_corrected, "position")
 plot_cn2 = ggplot(logRCopyNumber2_corrected, aes(value)) + geom_density() + labs(x = "logR_corrected_cn2", y = "Density", color = NULL) 
 logRCopyNumber2_corrected$value = logRCopyNumber2_corrected$value + 2
 poisson_logR_cn2 = fitdist(logRCopyNumber2_corrected$value, "pois",  method = 'mme')  #?????methods
-poisson_logR_cn2 #3.999995
+poisson_logR_cn2 #1.999995
+
 
 #cn=3
 dataCopyNumber3_corrected = dataCopyNumber3_corrected[c(9, 10)]
@@ -149,7 +150,7 @@ logRCopyNumber3_corrected = melt(dataCopyNumber3_corrected, "position")
 plot_cn3 = ggplot(logRCopyNumber3_corrected, aes(value)) + geom_density() + labs(x = "logR_corrected_cn3", y = "Density", color = NULL) 
 dataCopyNumber3_corrected$value = dataCopyNumber3_corrected$value + 3
 poisson_logR_cn3 = fitdist(logRCopyNumber3_corrected$value, 'pois', method = 'mle')   #?????methods
-poisson_logR_cn3
+poisson_logR_cn3 #0.7042147
 
 grid.arrange(plot_cn0, plot_cn1, plot_cn2, plot_cn3, ncol = 2, nrow = 2)
 ###### fitdist method ????? no maximum likelihood?#################
