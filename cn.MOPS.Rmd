@@ -1,0 +1,295 @@
+---
+title: "cn.mops_updated-7 March"
+output: html_notebook
+---
+```{r}
+getwd()
+```
+
+```{r}
+source("https://bioconductor.org/biocLite.R")
+biocLite("cn.mops")
+library(cn.mops)
+```
+
+```{r}
+library(ggplot2)
+library(reshape2)
+```
+
+read in bin reads data
+```{r}
+embryoNumber = c(35)#, 42)
+cellNumber = c(1,2,3,4)#, c(1,2,3,4,5,7,8))
+rowName = read.table("/Users/Yibing/Bioinfo-Master-Thesis/Output/rowName.txt", sep = "\t", header = TRUE)
+fileName = paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/binReads/TVEMB", embryoNumber[1], sep = "" ), "_binReads.txt", sep = "")
+data = read.table(fileName, sep = "\t", header = TRUE)
+rownames(data) = rowName$Chr_Start_End_Length
+data = subset(data, Chr != "Y")
+data.selected = data[cellNumber+5]
+dim(data)
+colnames(data.selected) = paste(paste("TVEMB", embryoNumber[1], sep = ""), cellNumber, sep = "_")
+data.selected = cbind(data[c(2:5)], data.selected)
+
+data.selected
+```
+
+
+running cn.mops
+```{r}
+data.cnmops = data.matrix(data.selected[,(ncol(data.selected)-length(cellNumber)+1):ncol(data.selected)] )
+result.cnmops = cn.mops(data.cnmops)
+result.cnmops
+#dim(data.selected)
+#dim(data.cnmops)
+#dim(result.normalised)
+```
+
+plot within cn.mops plotting function (all chromosomes combined)
+```{r}
+segplot(result.cnmops, ylim = c(-3,3))
+```
+calculate integer copy numbers
+```{r}
+result.integerCN = calcIntegerCopyNumbers(result.cnmops)
+result.integerCN
+```
+
+```{r}
+plot(result.integerCN, which = 1)
+```
+
+calculating logR
+```{r}
+library(matrixStats)
+result.normalised = result.cnmops@normalizedData
+median = colMedians(result.normalised)
+result.logR = as.data.frame(log10(result.normalised/median))
+colnames(result.logR) = c(paste(paste("TVEMB", embryoNumber, sep = ""), cellNumber, sep = "_"))
+result.logR = cbind(data.selected[c(1, 2)], result.logR)
+result.logR
+```
+
+
+
+
+```{r fig.height=16, fig.width=12}
+result.cn = result.integerCN@integerCopyNumber
+for (i in 1:length(cellNumber)){
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN0", rainbow(8)[1], result.cn[ ,i])
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN1", rainbow(8)[2], result.cn[ ,i])
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN2", "black", result.cn[ ,i])
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN3", rainbow(8)[3], result.cn[ ,i])
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN4", rainbow(8)[4], result.cn[ ,i])
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN5", rainbow(8)[5], result.cn[ ,i])
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN6", rainbow(8)[6], result.cn[ ,i])
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN7", rainbow(8)[7], result.cn[ ,i])
+  result.cn[ ,i] = ifelse(result.cn[ ,i] == "CN8", rainbow(8)[8], result.cn[ ,i])
+  
+}
+result.plot = cbind(result.logR, result.cn)
+colnames(result.plot) = c(colnames(result.logR), c(paste(paste("cn.TVEMB", embryoNumber, sep = ""), cellNumber, sep = "_")))
+
+result.plot$Chr = factor(result.plot$Chr, levels = c(1:22, "X"))
+
+for (i in 1:length(cellNumber)){ 
+  plotName = paste(colnames(result.plot)[i+2], "pdf", sep = ".")
+  pdf(plotName, height = 16, width = 12)
+  
+  plot = ggplot(data=result.plot) + 
+    geom_point(aes(x = Start, y = result.plot[ ,i+2]), size = 0.2, color = result.plot[ ,length(cellNumber)+i+2]) + 
+    #geom_point(aes(x = Start, y = result.plot[ ,i+4]), size = 0.2, color = "red") + 
+    facet_wrap(.~Chr, ncol = 3, scales = "free_x") +
+    labs(x = "Start", y = "logR", color = NULL) +
+    ggtitle(names(result.plot)[i+2]) +
+    theme(legend.position = "bottom")
+  print(plot)
+  dev.off()
+}
+```
+
+#gc correction???
+```{r fig.height=16, fig.width=12}
+gc = read.table("/Users/Yibing/Bioinfo-Master-Thesis/Data/Combined_Human_NCBI37.2_250K_101bases_mappable_bins_GCperc_INPUT.txt", sep = "\t", header = FALSE)[1:11022,] #only select until x
+colnames(gc) = c("Position", "GC", "End")
+gc.plot = cbind(gc[2], result.plot)
+
+for (i in 1:length(cellNumber)){ 
+  plot = ggplot(data=gc.plot) + 
+    geom_point(aes(x = GC, y = result.plot[ ,i+2]), size = 0.2, color = "black") + 
+    facet_wrap(.~Chr, ncol = 3, scales = "free_x") +
+    labs(x = "GC", y = "logR", color = NULL) +
+    ggtitle(names(result.plot)[i+2]) +
+    theme(legend.position = "bottom")
+  print(plot)
+}
+```
+
+
+
+
+```{r fig.height=16, fig.width=12}
+fileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/logr_cn_per_bin/TVEMB6_1.250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
+data = read.table(fileName, sep = "\t", header = TRUE)
+data = cbind(data, gc[2])
+q <- ggplot(data=data) + 
+  geom_point(size = 0.2, aes(x=start,y=LogR)) + 
+  facet_wrap(.~chr, ncol = 3, scales = "free_x")
+q
+```
+
+
+plot logR with ggplot per chromosome per cell
+#```{r}
+result.plot = result.normalised
+result.plot$position = result.normalised$Length/2 + result.normalised$Start
+chromosomeNumber = c(seq(1,22), "X")
+
+for (n in 1:length(embryoNumber)){
+for (i in 1:length(as.numeric(unlist(cellNumber[n])))){ 
+plotDataCombined = data.frame()
+for (j in chromosomeNumber){
+plotData = subset(result.plot, result.plot$Chr==j)[c((n-1)*length(as.numeric(unlist(cellNumber[n])))+4+i, dim(result.plot)[2])]
+chrData = melt(plotData, "position")
+chrData$Chr = j
+plotDataCombined = rbind(plotDataCombined, chrData)
+}
+plotDataCombined = plotDataCombined[order(as.numeric(as.character(plotDataCombined$Chr))), ]
+
+plotDataName = paste(colnames(result.normalised)[(n-1)*length(as.numeric(unlist(cellNumber[n])))+4+i], "pdf", sep = ".")
+pdf(plotDataName, height = 16, width = 12)
+
+plot = ggplot(plotDataCombined, aes(position, value)) +
+geom_point(size = 0.2, color = "red") + 
+ylim(-2, 2) +
+facet_wrap(~as.numeric(plotDataCombined$Chr), scales = "free_x", ncol = 3) +
+labs(x = "Position", y = "logR", color = NULL) +
+ggtitle(plotDataCombined$variable[1]) +
+theme(legend.position = "bottom")
+print(plot)
+dev.off()
+}
+}
+
+###CHROMOSOME LABEL X????
+
+```
+#```{r}
+write.table(result.normalised, file = "embryo14142.txt", sep = "\t" )
+embryo41 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/embryo41.txt", sep = "\t", header = TRUE)
+#embryo42 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/embryo42.txt", sep = "\t", header = TRUE)
+embryo14142 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/embryo14142.txt", sep = "\t", header = TRUE)
+delta = as.data.frame(embryo41$TVEMB41_1 - embryo14142$TVEMB41_1)
+delta$position = result.plot$position
+colnames(delta) = c("Delta", "Position")
+delta = cbind(data[c(2:5)], delta)
+delta
+chromosomeNumber = c(seq(1,22), "X")
+plotDataCombined_delta = data.frame()
+for (j in chromosomeNumber){
+plotData = subset(delta, delta$Chr==j)[c(5, 6)]
+chrData = melt(plotData, "Position")
+chrData$Chr = j
+plotDataCombined_delta = rbind(plotDataCombined_delta, chrData)
+}
+
+plotDataCombined_delta = plotDataCombined_delta[order(as.numeric(as.character(plotDataCombined_delta$Chr))), ]
+pdf("delta.pdf", height = 16, width = 12)
+
+plot = ggplot(plotDataCombined_delta, aes(Position, value)) +
+geom_point(size = 0.2, color = "red") + 
+ylim(-0.1, 0.1) +
+facet_wrap(~as.numeric(plotDataCombined_delta$Chr), scales = "free_x", ncol = 3) +
+labs(x = "Position", y = "logR", color = NULL) +
+ggtitle(plotDataCombined_delta$variable[1]) +
+theme(legend.position = "bottom")
+print(plot)
+dev.off()
+```
+
+plot cn.mops against current logR values
+#```{r}
+embryoNumber = c(6)
+cellNumber = list(c(1))
+rowName = read.table("/Users/Yibing/Bioinfo-Master-Thesis/Output/rowName.txt", header = TRUE)
+data.subset = rowName
+
+for (i in (1:length(embryoNumber))){ 
+fileName = paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB", embryoNumber[i], sep = "" ), "txt", sep = ".")
+data = read.table(fileName, sep = "\t", header = TRUE)
+data = cbind(data, rowName)
+data.current.subset = data[(as.numeric(unlist(cellNumber[i]))-1)*3+8]
+rownames(data.current.subset) = data$Chr_Start_End_Length
+colnames(data.current.subset) = paste(paste("currentTVEMB", embryoNumber[i], sep = ""), as.numeric(unlist(cellNumber[i])), sep = "_")
+data.subset = cbind(data.subset, data.current.subset)
+}
+data.subset = data.subset[,-1]
+data.subset
+data.plot = cbind(data.subset, result.normalised[,(ncol(result.normalised)-dim(data.subset)[2]+1):ncol(result.normalised)])
+data.plot = cbind(data[c(2:5)], data.plot)
+data.plot$position = result.normalised$Length/2 + result.normalised$Start
+```
+
+#```{r fig.height=16, fig.width=12}
+chromosomeNumber = c(seq(1,22), "X")
+
+
+for (n in 1:length(embryoNumber)){
+for (i in 1:length(as.numeric(unlist(cellNumber[n])))){ 
+plotDataCombined = data.frame()
+for (j in chromosomeNumber){
+plotData = subset(data.plot, data.plot$Chr==j)[c(2, (n-1)*length(as.numeric(unlist(cellNumber[n])))+4+i,((n-1)*length(as.numeric(unlist(cellNumber[n])))+4+i)+length(as.numeric(unlist(cellNumber[n]))))]
+chrData = melt(plotData, "Start")
+chrData$Chr = j
+plotDataCombined = rbind(plotDataCombined, chrData)
+}
+plotDataCombined = plotDataCombined[order(as.numeric(as.character(plotDataCombined$Chr))), ]
+
+plotDataName = paste(colnames(result.normalised)[(n-1)*length(as.numeric(unlist(cellNumber[n])))+4+i], "pdf", sep = ".")
+pdf(plotDataName, height = 16, width = 12)
+
+plot = ggplot(plotDataCombined, aes(Start, value, group=variable, color = variable)) +
+geom_point(size = 0.2) + 
+ylim(-2, 2) +
+facet_wrap(~as.numeric(plotDataCombined$Chr), scales = "free_x", ncol = 3) +
+labs(x = "Position", y = "logR", color = NULL) +
+ggtitle(plotDataCombined$variable[1]) +
+theme(legend.position = "bottom")
+print(plot)
+dev.off()
+}
+}
+```
+
+#```{r fig.height=16, fig.width=12}
+#plotData = data.plot[c(1, 2, 5, 7)]
+plot = ggplot(data=data.plot) + 
+geom_point(aes(x = Start, y = currentTVEMB6_2)) + 
+facet_wrap(.~Chr, ncol = 3, scales = "free_x")
+plot
+data.plot
+```
+
+
+
+
+
+
+#```{r fig.height=16, fig.width=12}
+fileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/logr_cn_per_bin/TVEMB6_2.250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
+data = read.table(fileName, sep = "\t", header = TRUE)
+q <- ggplot(data=data) + geom_point(aes(x=start,y=LogR)) + facet_wrap(.~chr, ncol = 3, scales = "free_x")
+q
+data
+```
+
+#```{r}
+fileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/raw_counts/TVEMB6_2.250K.101.sorted.count-t"
+data.output = read.table(fileName, sep = "\t", header = FALSE)
+#data.output
+a = data$start-data.output$Start
+a
+start = cbind(data$start, data.output$V2)
+start
+```
+
