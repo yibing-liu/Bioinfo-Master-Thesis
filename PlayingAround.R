@@ -7,11 +7,10 @@ library(ggplot2)
 install.packages("fitdistrplus")
 library(fitdistrplus)
 
-
 getwd()
 
 #plot all embryo cells logR+cn
-for (i in 1:47){
+for (i in 1:1){
   fileName = paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB", i, sep = ""), "txt", sep = ".")
   data = read.csv(fileName, sep = "\t", header = TRUE)
   data$position = (data$End - data$Start)/2 + data$Start
@@ -23,8 +22,8 @@ for (i in 1:47){
   plotDataCombined_cn = data.frame()
   
   for (j in chromosomeNumber){
-    plotData_logR = data.frame(filter(data, (data$Chr==j)))[columnNumber_logR]
-    plotData_cn = data.frame(filter(data, (data$Chr==j)))[columnNumber_cn]
+    plotData_logR = subset(data, (data$Chr==j))[columnNumber_logR]
+    plotData_cn = subset(data, (data$Chr==j))[columnNumber_cn]
     logR = melt(plotData_logR, "position")
     cn = melt(plotData_cn, "position")
     logR$Chr = j
@@ -69,7 +68,7 @@ dataCombined = dataCombined[c(6:322)]
 logRCombined = melt(dataCombined, "position")
 ggplot(logRCombined, aes(value)) + geom_density() + labs(x = "logR", y = "Density", color = NULL) 
 
-poisson_logR = fitdist(logRCombined$value, 'pois', method = 'mme')   ?????methods
+poisson_logR = fitdist(logRCombined$value, 'pois', method = 'mme')   #?????methods
 
 
 ##########################################################################################
@@ -155,9 +154,68 @@ poisson_logR_cn3 #0.7042147
 grid.arrange(plot_cn0, plot_cn1, plot_cn2, plot_cn3, ncol = 2, nrow = 2)
 ###### fitdist method ????? no maximum likelihood?#################
 #############################################################################################
-#Poisson
-install.packages("fitdistrplus")
-library(fitdistrplus)
+data_1_1 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Data/raw_counts/TVEMB1_1.250K.101.sorted.count-t", sep = "\t", header = FALSE)
+colnames(data_1_1) = c("chr", "start", "end", "binSize", "length", "binReads", "systemControl")
+ggplot(data_1_1, aes(binReads)) + geom_density() + labs(x = "# BinReads", y = "Density", color = NULL) 
+
+
+data_1_1_cn0 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/combinedCN0_corrected.txt", sep = "\t", header = TRUE)
+ggplot(data_1_1_cn0, aes(binReads)) + geom_density() + labs(x = "# BinReads", y = "Density", color = NULL) 
+poisson_1_1_cn0 = fitdist(data_1_1_cn0$binReads, 'pois', method = 'mle')
+poisson_1_1_cn0
+
+data_1_1_cn1 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/combinedCN1_corrected.txt", sep = "\t", header = TRUE)
+ggplot(data_1_1_cn1, aes(binReads)) + geom_density() + labs(x = "# BinReads", y = "Density", color = NULL) 
+poisson_1_1_cn1 = fitdist(data_1_1_cn1$binReads, 'pois', method = 'mle')
+poisson_1_1_cn1
+
+data_1_1_cn2 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/combinedCN2_corrected.txt", sep = "\t", header = TRUE)
+ggplot(data_1_1_cn2, aes(binReads)) + geom_density() + labs(x = "# BinReads", y = "Density", color = NULL) 
+poisson_1_1_cn2 = fitdist(data_1_1_cn2$binReads, 'pois', method = 'mle')
+poisson_1_1_cn2
+
+data_1_1_cn3 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/combinedCN3_corrected.txt", sep = "\t", header = TRUE)
+ggplot(data_1_1_cn3, aes(binReads)) + geom_density() + labs(x = "# BinReads", y = "Density", color = NULL) 
+#poisson_1_1_cn3 = fitdist(data_1_1_cn3$binReads, 'pois', method = 'mle')
+#poisson_1_1_cn3
+
+###problem: false positive will be count in wrong sections
+
+
+data_1_2 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Data/raw_counts/TVEMB1_2.250K.101.sorted.count-t", sep = "\t", header = FALSE)
+colnames(data_1_2) = c("chr", "start", "end", "binSize", "length", "binReads", "systemControl")
+ggplot(data_1_2, aes(binReads)) + geom_density() + labs(x = "# BinReads", y = "Density", color = NULL)
+
+data_2_1 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Data/raw_counts/TVEMB2_1.250K.101.sorted.count-t", sep = "\t", header = FALSE)
+colnames(data_2_1) = c("chr", "start", "end", "binSize", "length", "binReads", "systemControl")
+ggplot(data_2_1, aes(binReads)) + geom_density() + labs(x = "# BinReads", y = "Density", color = NULL)
+
+data_2_2 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Data/raw_counts/TVEMB2_2.250K.101.sorted.count-t", sep = "\t", header = FALSE)
+colnames(data_2_2) = c("chr", "start", "end", "binSize", "length", "binReads", "systemControl")
+ggplot(data_2_2, aes(binReads)) + geom_density() + labs(x = "# BinReads", y = "Density", color = NULL)
+
+summary(data_2_2$binReads)
+
+mix(data_2_2$binReads, mixpar = poispar, dist = "pois") #mixpar missing
+mixparam(data_2_2$binReads)
+
+
+install.packages("mixdist")
+library(mixdist)
+install.packages("MixedPoisson")
+library(MixedPoisson)
+
+data(pike65)
+plot.mixdata(poisdat)
+data(poispar)
+mixp = pl.dist(variable=data_2_2$binReads)
+
+
+
+
+data(poispar)
+
+data(pikepar)
 
 ###################
 data_47 = read.csv("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB47.txt", sep = "\t", header = TRUE)

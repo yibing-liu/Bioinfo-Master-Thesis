@@ -102,13 +102,13 @@ def getEmbryoData(embryoNumber):
         separateData[i]["Start"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 1) #start
         separateData[i]["End"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 2) #end
         separateData[i]["Length"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 4) #length
-        separateData[i]["cell"+i+"_binReads"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 5) #binReads
-        separateData[i]["cell"+i+"_CN"] = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 3) #cn
-        separateData[i]["cell"+i+"_logR"] = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 5) #logR
+        #separateData[i]["cell"+i+"_binReads"] = getColumn(getRawFile(getRawCountsFileName(embryoNumber, i)), 5) #binReads
+        #separateData[i]["cell"+i+"_CN"] = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 3) #cn
+        #separateData[i]["cell"+i+"_logR"] = getColumn(getPerBinFile(getPerBinFileName(embryoNumber, i)), 5) #logR
         if i == getEmbryoCellNumber(embryoNumber)[0]:
             embryoData = separateData[i] #initialise embryoData to proceed merge later
         embryoData = embryoData.merge (separateData[i])
-    outputFileName = "TVEMB" + str(embryoNumber) + ".txt"
+    outputFileName = "TVEMB" + str(embryoNumber) + "_binReads.txt"
     embryoData.to_csv(outputFileName, sep="\t", mode="a") ###NEED TO SET OUTPUT-PATH
     return embryoData
 
@@ -169,23 +169,24 @@ def getTotalBinReads(embryoNumber, cellNumber):
     return totalBinReads
 
 def getCorrectedSeparateCopyNumberData():
-    correctedCopyNumber0Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected"])
-    correctedCopyNumber1Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected"])
-    correctedCopyNumber2Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected"])
-    correctedCopyNumber3Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected"])
-    for i in range(1,48):
-        for j in range(0,len(getEmbryoCellNumber(i))):
-            dataframe = getPerBinFile(getPerBinFileName(i, getEmbryoCellNumber(i)[j]))
-            for n in range(0,len(dataframe)):
-                LogR_corrected = dataframe.iloc[n]["LogR"]*getCurrentBinReads(i, getEmbryoCellNumber(i)[j], (n+1))/getTotalBinReads(i, getEmbryoCellNumber(i)[j])
-                currentRow = [dataframe.iloc[n]["chr"], dataframe.iloc[n]["start"], dataframe.iloc[n]["end"], dataframe.iloc[n]["CN"], dataframe.iloc[n]["CN_segment"], dataframe.iloc[n]["LogR"], dataframe.iloc[n]["LogR_segment"], LogR_corrected]
-                if (dataframe.iloc[n]["CN_segment"] == 0):
+    correctedCopyNumber0Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected", "binReads"])
+    correctedCopyNumber1Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected", "binReads"])
+    correctedCopyNumber2Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected", "binReads"])
+    correctedCopyNumber3Data = pandas.DataFrame(columns = ["chr", "start", "end", "CN", "CN_segment", "LogR", "LogR_segment", "LogR_corrected", "binReads"])
+    for i in range(1,2):#48):
+        for j in range(0,1):#len(getEmbryoCellNumber(i))):
+            dataframe_perBin = getPerBinFile(getPerBinFileName(i, getEmbryoCellNumber(i)[j]))
+            dataframe_raw = getRawFile(getRawCountsFileName(i, getEmbryoCellNumber(i)[j]))
+            for n in range(0,len(dataframe_perBin)):
+                LogR_corrected = dataframe_perBin.iloc[n]["LogR"]*getCurrentBinReads(i, getEmbryoCellNumber(i)[j], (n+1))/getTotalBinReads(i, getEmbryoCellNumber(i)[j])
+                currentRow = [dataframe_perBin.iloc[n]["chr"], dataframe_perBin.iloc[n]["start"], dataframe_perBin.iloc[n]["end"], dataframe_perBin.iloc[n]["CN"], dataframe_perBin.iloc[n]["CN_segment"], dataframe_perBin.iloc[n]["LogR"], dataframe_perBin.iloc[n]["LogR_segment"], LogR_corrected, dataframe_raw.iloc[n]["binReads"]]
+                if (dataframe_perBin.iloc[n]["CN_segment"] == 0):
                     correctedCopyNumber0Data.loc[len(correctedCopyNumber0Data)] = currentRow
-                if (dataframe.iloc[n]["CN_segment"] == 1):
+                if (dataframe_perBin.iloc[n]["CN_segment"] == 1):
                     correctedCopyNumber1Data.loc[len(correctedCopyNumber1Data)] = currentRow
-                if (dataframe.iloc[n]["CN_segment"] == 2):
+                if (dataframe_perBin.iloc[n]["CN_segment"] == 2):
                     correctedCopyNumber2Data.loc[len(correctedCopyNumber2Data)] = currentRow
-                if (dataframe.iloc[n]["CN_segment"] == 3):
+                if (dataframe_perBin.iloc[n]["CN_segment"] == 3):
                     correctedCopyNumber3Data.loc[len(correctedCopyNumber3Data)] = currentRow
     correctedCopyNumber0Data.to_csv("combinedCN0_corrected.txt", sep="\t", mode="a")
     correctedCopyNumber1Data.to_csv("combinedCN1_corrected.txt", sep="\t", mode="a")
@@ -201,21 +202,21 @@ def getPoissonProbability(l, k):
 #generate file logR -->probability(cn0, cn1, cn2, cn3)
 ###############################################################################################
 def getProbabilityLogRData():
-    for i in range(1,48):
-        for j in range(0,len(getEmbryoCellNumber(i))):
+    for i in range(1,2):
+        for j in range(0,1):#len(getEmbryoCellNumber(i))):
             probabilityLogRData = pandas.DataFrame(columns = ["chr", "start", "end", "LogR_corrected", "Pcn0", "Pcn1", "Pcn2", "Pcn3"])
             dataframe = getPerBinFile(getPerBinFileName(i, getEmbryoCellNumber(i)[j]))
             for n in range(0,len(dataframe)):
                 LogR_corrected = dataframe.iloc[n]["LogR"]*getCurrentBinReads(i, getEmbryoCellNumber(i)[j], (n+1))/getTotalBinReads(i, getEmbryoCellNumber(i)[j])
-                Pcn0 = getPoissonProbability(-0.0002759783, LogR_corrected) ##correct lambda value needed
+                Pcn0 = getPoissonProbability(-0.0002759783, LogR_corrected) ##correct lambda value needed?
                 Pcn1 = getPoissonProbability(0.9999388, LogR_corrected+1)   ##correct lambda value needed
                 Pcn2 = getPoissonProbability(1.999995, LogR_corrected+2)    ##correct lambda value needed
                 Pcn3 = getPoissonProbability(0.7042147, LogR_corrected+3)   ##correct lambda value needed
                 currentRow = [dataframe.iloc[n]["chr"], dataframe.iloc[n]["start"], dataframe.iloc[n]["end"], LogR_corrected, Pcn0, Pcn1, Pcn2, Pcn3]
                 print(currentRow)
                 probabilityLogRData.loc[len(probabilityLogRData)] = currentRow
-                outputFileName = "TVEMB" + str(i) + "_" + getEmbryoCellNumber(i)[j] + "_probability.txt"
-            probabilityLogRData.to_csv(outputFileName, sep="\t", mode="a")
+                #outputFileName = "TVEMB" + str(i) + "_" + getEmbryoCellNumber(i)[j] + "_probability.txt"
+            #probabilityLogRData.to_csv(outputFileName, sep="\t", mode="a")
 
 
 ###############################################################################################
@@ -339,14 +340,22 @@ def getControlData(fileType):
 
 #############################################################################################
 #OPERATOR
-#for i in range(1,48):
-#    getEmbryoData(i)
+#for i in range(1,1):
+#getEmbryoData(i)
+#fileName = "TVEMB1.txt"
+#fileOutput = open("rowName.txt", "w")
+#for line in open(fileName):
+#    line = line.split()
+#    rowName = "Chr_" + str(line[1]) + "_" + str(line[2]) + "_" + str(line[3]) + "\n"
+#    fileOutput.write(rowName)
+#fileOutput.close()
+
 
 #getCombinedLogRData()
 
 #getSeparateCopyNumberData()
 #getCorrectedSeparateCopyNumberData()
-getProbabilityLogRData()
+#getProbabilityLogRData()
 
 
 #fileType = ["control", "empty", "NC", "PCMC", "PCSC"]

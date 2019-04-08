@@ -1,0 +1,15 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+getwd()
+binList_cn2 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/cn2_bin.txt", sep = "\t")
+binList_cn2 = binList_cn2[c(1,2,6)]
+binList_cn2
+colnames(binList_cn2) = c("chr", "start", "logR")
+binList_cn2
+```
+

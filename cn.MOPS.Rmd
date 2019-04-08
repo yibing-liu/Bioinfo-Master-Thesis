@@ -19,8 +19,8 @@ library(reshape2)
 
 read in bin reads data
 ```{r}
-embryoNumber = c(35)#, 42)
-cellNumber = c(1,2,3,4)#, c(1,2,3,4,5,7,8))
+embryoNumber = c(41)#, 42)
+cellNumber = c(1,2,3,4,5,6,7)#, c(1,2,3,4,5,7,8))
 rowName = read.table("/Users/Yibing/Bioinfo-Master-Thesis/Output/rowName.txt", sep = "\t", header = TRUE)
 fileName = paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/binReads/TVEMB", embryoNumber[1], sep = "" ), "_binReads.txt", sep = "")
 data = read.table(fileName, sep = "\t", header = TRUE)
@@ -64,7 +64,7 @@ calculating logR
 library(matrixStats)
 result.normalised = result.cnmops@normalizedData
 median = colMedians(result.normalised)
-result.logR = as.data.frame(log10(result.normalised/median))
+result.logR = as.data.frame(log2(result.normalised/median))
 colnames(result.logR) = c(paste(paste("TVEMB", embryoNumber, sep = ""), cellNumber, sep = "_"))
 result.logR = cbind(data.selected[c(1, 2)], result.logR)
 result.logR
@@ -99,6 +99,7 @@ for (i in 1:length(cellNumber)){
   plot = ggplot(data=result.plot) + 
     geom_point(aes(x = Start, y = result.plot[ ,i+2]), size = 0.2, color = result.plot[ ,length(cellNumber)+i+2]) + 
     #geom_point(aes(x = Start, y = result.plot[ ,i+4]), size = 0.2, color = "red") + 
+    ylim(-2,2) +
     facet_wrap(.~Chr, ncol = 3, scales = "free_x") +
     labs(x = "Start", y = "logR", color = NULL) +
     ggtitle(names(result.plot)[i+2]) +
@@ -128,7 +129,9 @@ for (i in 1:length(cellNumber)){
 
 
 
-```{r fig.height=16, fig.width=12}
+
+
+#```{r fig.height=16, fig.width=12}
 fileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/logr_cn_per_bin/TVEMB6_1.250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
 data = read.table(fileName, sep = "\t", header = TRUE)
 data = cbind(data, gc[2])
