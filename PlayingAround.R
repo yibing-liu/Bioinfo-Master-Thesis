@@ -9,6 +9,7 @@ library(fitdistrplus)
 
 getwd()
 
+
 #plot all embryo cells logR+cn
 for (i in 1:1){
   fileName = paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Output/TVEMB", i, sep = ""), "txt", sep = ".")

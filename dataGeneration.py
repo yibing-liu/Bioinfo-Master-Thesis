@@ -25,25 +25,21 @@ mapD_selected = pandas.read_csv(mapDFileName)
 
 
 #get all bins with cn=2
-#outputFile_cn2_bin = open('cn2_bin.txt', 'w+')
+#outputFile_cn2_bin = open('cn2_bin.txt', 'a+')
 for i in range(0,len(mapD_selected)):
-    sampleName = mapD_selected.iloc[i]['sample']
-    split = sampleName.split("_")
-    if 'TVEMB' in split[0]:
-        embryoNumber = split[0].split("TVEMB")[1]
-        cellNumber = split[1]
-        filepath = perBinFilePath + getPerBinFileName(embryoNumber, cellNumber)
-        median = numpy.median(getColumn(getPerBinFile(getPerBinFileName(embryoNumber, cellNumber)), 5))
-        print(median)
-        for line in enumerate(open(filepath)):
+    if 'TVEMB' in mapD_selected.iloc[i]['sample']:
+        embryoNumber = mapD_selected.iloc[i]['sample'].split("_")[0].split("TVEMB")[1]
+        cellNumber = mapD_selected.iloc[i]['sample'].split("_")[1]
+        for line in enumerate(open(perBinFilePath + getPerBinFileName(embryoNumber, cellNumber))):
+            outputFileName = 'cn2_TVEMB'+embryoNumber+'_'+cellNumber+'.txt'
+            outputFile_cn2_bin = open(outputFileName, 'a+')
             if line[1].split()[4] == '2':
                 outputFileName = 'cn2_TVEMB'+embryoNumber+'_'+cellNumber+'.txt'
-                #outputFile_cn2_bin = open(outputFileName, 'w+')
-                #outputFile_cn2_bin.write(line[1])
-#outputFile.close()
+                outputFile_cn2_bin = open(outputFileName, 'a+')
+                outputFile_cn2_bin.write(line[1].split()[0]+'\t'+line[1].split()[1]+'\t'+line[1].split()[2]+'\t'+line[1].split()[5]+'\n')
+            else:
+                outputFile_cn2_bin.write(line[1].split()[0]+'\t'+line[1].split()[1]+'\t'+line[1].split()[2]+'\t'+'NA'+'\n')
 
 
 
-for line in enumerate(open(perBinFilePath + getPerBinFileName(1, 1))):
-    if line[1].split()[4] == '2':
-        print(line)
+#print(open("tester.txt"))
