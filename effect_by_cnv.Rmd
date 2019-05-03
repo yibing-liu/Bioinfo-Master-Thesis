@@ -5,8 +5,9 @@ output: html_notebook
 ```{r}
 library(ggplot2)
 library(matrixStats)
-
+library(reshape)
 ```
+
 ```{r}
 install.packages("readxl")
 library(readxl)
@@ -68,15 +69,17 @@ for (i in 1:(dim(data_combined)[2]-3)){
   columnName = paste(colnames(data_combined[i+3]), "ratio", sep = "_")
   data_combined[columnName] =  data_combined[i+3]/colMedians(as.matrix(data_combined[i+3]), na.rm = TRUE)
 }
-#colnames(data_combined)
-data_combined
+data_combined["combined_median"] = rowMedians(as.matrix(data_combined[((dim(data_combined)[2]-3)/2+4):(dim(data_combined)[2])]), na.rm = TRUE)
+#data_combined
+colnames(data_combined)
+
 ```
 ```{r fig.height=25, fig.width=12}
 chromosomeNumber = c(seq(1,22), "X")
 
 plot_logRratio = data.frame()
 for (j in chromosomeNumber){
-  plotData_ratio = subset(data_combined, (data_combined$chr==j))[c(2, ((dim(data_combined)[2]-3)/2+4):(dim(data_combined)[2]))]
+  plotData_ratio = subset(data_combined, (data_combined$chr==j))[c(2, ((dim(data_combined)[2]-3)/2+4):(dim(data_combined)[2]-1))]
   logR_ratio = melt(plotData_ratio, "start")
   logR_ratio$Chr = j
   plot_logRratio = rbind(plot_logRratio, logR_ratio)
@@ -107,9 +110,29 @@ for (i in 1:(dim(data_day1)[2]-3)){
   columnName = paste(colnames(data_day1[i+3]), "ratio", sep = "_")
   data_day1[columnName] =  data_day1[i+3]/colMedians(as.matrix(data_day1[i+3]), na.rm = TRUE)
 }
+#data_day1
+data_day1["day1_median"] = rowMedians(as.matrix(data_day1[((dim(data_day1)[2]-3)/2+4):(dim(data_day1)[2])]), na.rm = TRUE)
 colnames(data_day1)
-data_day1
 ```
+```{r fig.height=25, fig.width=12}
+chromosomeNumber = c(seq(1,22), "X")
+
+plot_logRratio = data.frame()
+for (j in chromosomeNumber){
+  plotData_ratio = subset(data_day1, (data_day1$chr==j))[c(2, ((dim(data_day1)[2]-3)/2+4):(dim(data_day1)[2]-1))]
+  logR_ratio = melt(plotData_ratio, "start")
+  logR_ratio$Chr = j
+  plot_logRratio = rbind(plot_logRratio, logR_ratio)
+}
+plot_logRratio$facet= factor(plot_logRratio$Chr, levels = c(1:22, "X"))
+plot = ggplot(plot_logRratio, aes(start, value, group=variable, color = variable)) +
+  geom_point(size = 0.2) + 
+  facet_wrap(~facet, scales = "free_x", ncol = 3) +
+  labs(x = "Position", y = "logR", color = NULL) +
+  theme(legend.position = "bottom")
+print(plot)
+```
+
 
 Stage: DAY2
 
@@ -129,12 +152,32 @@ for (i in 1:(dim(data_day2)[2]-3)){
   columnName = paste(colnames(data_day2[i+3]), "ratio", sep = "_")
   data_day2[columnName] =  data_day2[i+3]/colMedians(as.matrix(data_day2[i+3]), na.rm = TRUE)
 }
+data_day2["day2_median"] = rowMedians(as.matrix(data_day2[((dim(data_day2)[2]-3)/2+4):(dim(data_day2)[2])]), na.rm = TRUE)
 colnames(data_day2)
 #data_day2
 ```
+```{r fig.height=25, fig.width=12}
+chromosomeNumber = c(seq(1,22), "X")
+
+plot_logRratio = data.frame()
+for (j in chromosomeNumber){
+  plotData_ratio = subset(data_day2, (data_day2$chr==j))[c(2, ((dim(data_day2)[2]-3)/2+4):(dim(data_day2)[2]-1))]
+  logR_ratio = melt(plotData_ratio, "start")
+  logR_ratio$Chr = j
+  plot_logRratio = rbind(plot_logRratio, logR_ratio)
+}
+plot_logRratio$facet= factor(plot_logRratio$Chr, levels = c(1:22, "X"))
+plot = ggplot(plot_logRratio, aes(start, value, group=variable, color = variable)) +
+  geom_point(size = 0.2) + 
+  facet_wrap(~facet, scales = "free_x", ncol = 3) +
+  labs(x = "Position", y = "logR", color = NULL) +
+  theme(legend.position = "bottom")
+print(plot)
+```
+
+
 
 Stage: DAY3
-
 ```{r}
 fileName = paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/logr_cn2/cn2_TVEMB", (embryoNumber_day3[1]), sep = ""), (unlist(cellNumber_day3[1]))[1], sep = "_"), "txt", sep = ".")  
 data_day3 = read.table(fileName, sep = "\t", header = TRUE)
@@ -151,8 +194,28 @@ for (i in 1:(dim(data_day3)[2]-3)){
   columnName = paste(colnames(data_day3[i+3]), "ratio", sep = "_")
   data_day3[columnName] =  data_day3[i+3]/colMedians(as.matrix(data_day3[i+3]), na.rm = TRUE)
 }
+data_day3["day3_median"] = rowMedians(as.matrix(data_day3[((dim(data_day3)[2]-3)/2+4):(dim(data_day3)[2])]), na.rm = TRUE)
 colnames(data_day3)
 #data_day3
+```
+
+```{r fig.height=25, fig.width=12}
+chromosomeNumber = c(seq(1,22), "X")
+
+plot_logRratio = data.frame()
+for (j in chromosomeNumber){
+  plotData_ratio = subset(data_day3, (data_day3$chr==j))[c(2, ((dim(data_day3)[2]-3)/2+4):(dim(data_day3)[2]-1))]
+  logR_ratio = melt(plotData_ratio, "start")
+  logR_ratio$Chr = j
+  plot_logRratio = rbind(plot_logRratio, logR_ratio)
+}
+plot_logRratio$facet= factor(plot_logRratio$Chr, levels = c(1:22, "X"))
+plot = ggplot(plot_logRratio, aes(start, value, group=variable, color = variable)) +
+  geom_point(size = 0.2) + 
+  facet_wrap(~facet, scales = "free_x", ncol = 3) +
+  labs(x = "Position", y = "logR", color = NULL) +
+  theme(legend.position = "bottom")
+print(plot)
 ```
 
 Stage: DAY4
@@ -172,9 +235,30 @@ for (i in 1:(dim(data_day4)[2]-3)){
   columnName = paste(colnames(data_day4[i+3]), "ratio", sep = "_")
   data_day4[columnName] =  data_day4[i+3]/colMedians(as.matrix(data_day4[i+3]), na.rm = TRUE)
 }
+data_day4["day4_median"] = rowMedians(as.matrix(data_day4[((dim(data_day4)[2]-3)/2+4):(dim(data_day4)[2])]), na.rm = TRUE)
 colnames(data_day4)
 #data_day4
 ```
+
+```{r fig.height=25, fig.width=12}
+chromosomeNumber = c(seq(1,22), "X")
+
+plot_logRratio = data.frame()
+for (j in chromosomeNumber){
+  plotData_ratio = subset(data_day4, (data_day4$chr==j))[c(2, ((dim(data_day4)[2]-3)/2+4):(dim(data_day4)[2]-1))]
+  logR_ratio = melt(plotData_ratio, "start")
+  logR_ratio$Chr = j
+  plot_logRratio = rbind(plot_logRratio, logR_ratio)
+}
+plot_logRratio$facet= factor(plot_logRratio$Chr, levels = c(1:22, "X"))
+plot = ggplot(plot_logRratio, aes(start, value, group=variable, color = variable)) +
+  geom_point(size = 0.2) + 
+  facet_wrap(~facet, scales = "free_x", ncol = 3) +
+  labs(x = "Position", y = "logR", color = NULL) +
+  theme(legend.position = "bottom")
+print(plot)
+```
+
 
 Stage: DAY5
 ```{r}
@@ -193,8 +277,28 @@ for (i in 1:(dim(data_day5)[2]-3)){
   columnName = paste(colnames(data_day5[i+3]), "ratio", sep = "_")
   data_day5[columnName] =  data_day5[i+3]/colMedians(as.matrix(data_day5[i+3]), na.rm = TRUE)
 }
+data_day5["day5_median"] = rowMedians(as.matrix(data_day5[((dim(data_day5)[2]-3)/2+4):(dim(data_day5)[2])]), na.rm = TRUE)
 colnames(data_day5)
 #data_day5
+```
+
+```{r fig.height=16, fig.width=12}
+chromosomeNumber = c(seq(1,22), "X")
+
+plot_logRratio = data.frame()
+for (j in chromosomeNumber){
+  plotData_ratio = subset(data_day5, (data_day5$chr==j))[c(2, ((dim(data_day5)[2]-3)/2+4):(dim(data_day5)[2]-1))]
+  logR_ratio = melt(plotData_ratio, "start")
+  logR_ratio$Chr = j
+  plot_logRratio = rbind(plot_logRratio, logR_ratio)
+}
+plot_logRratio$facet= factor(plot_logRratio$Chr, levels = c(1:22, "X"))
+plot = ggplot(plot_logRratio, aes(start, value, group=variable, color = variable)) +
+  geom_point(size = 0.2) + 
+  facet_wrap(~facet, scales = "free_x", ncol = 3) +
+  labs(x = "Position", y = "logR", color = NULL) +
+  theme(legend.position = "bottom")
+print(plot)
 ```
 
 Stage: DAY6
@@ -214,7 +318,7 @@ for (i in 1:(dim(data_day6)[2]-3)){
   columnName = paste(colnames(data_day6[i+3]), "ratio", sep = "_")
   data_day6[columnName] =  data_day6[i+3]/colMedians(as.matrix(data_day6[i+3]), na.rm = TRUE)
 }
-
+data_day6["day6_median"] = rowMedians(as.matrix(data_day6[((dim(data_day6)[2]-3)/2+4):(dim(data_day6)[2])]), na.rm = TRUE)
 colnames(data_day6)
 (dim(data_day6)[2]-3)/2
 #data_day6
@@ -222,12 +326,12 @@ colnames(data_day6)
 
 
 
-```{r fig.height=16, fig.width=12}
+```{r fig.height=25, fig.width=12}
 chromosomeNumber = c(seq(1,22), "X")
 
 plot_logRratio = data.frame()
 for (j in chromosomeNumber){
-  plotData_ratio = subset(data_day6, (data_day6$chr==j))[c(2, ((dim(data_day6)[2]-3)/2+4):(dim(data_day6)[2]))]
+  plotData_ratio = subset(data_day6, (data_day6$chr==j))[c(2, ((dim(data_day6)[2]-3)/2+4):(dim(data_day6)[2]-1))]
   logR_ratio = melt(plotData_ratio, "start")
   logR_ratio$Chr = j
   plot_logRratio = rbind(plot_logRratio, logR_ratio)
@@ -241,4 +345,27 @@ plot = ggplot(plot_logRratio, aes(start, value, group=variable, color = variable
 print(plot)
 ```
 
+
+```{r fig.height=16, fig.width=12}
+data_stage = cbind(data_combined[c(1,2,3,ncol(data_combined))], data_day1[ncol(data_day1)], data_day2[ncol(data_day2)], data_day3[ncol(data_day3)], data_day4[ncol(data_day4)], data_day5[ncol(data_day5)], data_day6[ncol(data_day6)])
+
+#dim(data_stage)[2]
+for (i in 5:ncol(data_stage)){
+  plot_logRratio = data.frame()
+  for (j in chromosomeNumber){
+    plotData_ratio = subset(data_stage, (data_stage$chr==j))[c(2,4,i)]
+    logR_ratio = melt(plotData_ratio, "start")
+    logR_ratio$Chr = j
+    plot_logRratio = rbind(plot_logRratio, logR_ratio)
+  }
+  plot_logRratio$facet= factor(plot_logRratio$Chr, levels = c(1:22, "X"))
+  plot = ggplot(plot_logRratio, aes(start, value, group=variable, color = variable)) +
+    geom_point(size = 0.1) + 
+    facet_wrap(~facet, scales = "free_x", ncol = 3) +
+    ylim(-50,50) +
+    labs(x = "Position", y = "logR_ratio", color = NULL) +
+    theme(legend.position = "bottom")
+  print(plot)
+}
+```
 
