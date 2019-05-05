@@ -11,6 +11,7 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 install.packages("FLLat")
 library(FLLat)
 ```
+
 ```{r}
 embryoNumber = c(17) #c(41)
 cellNumber = c(2,3,5,7,8,9,10) #c(1,2,3,4,5,6,7)
@@ -51,7 +52,9 @@ result.bic$lam2
 run FLLat
 ```{r}
 #?FLLat
-result = FLLat(data.fllat, lam1=result.bic$lam1, lam2=result.bic$lam2, thresh=10^(-3))
+#result = FLLat(data.fllat, lam1=result.bic$lam1, lam2=result.bic$lam2, thresh=10^(-3))
+?FLLat
+result = FLLat(data.fllat, lam1=result.bic$lam1, lam2=5, thresh=10^(-5))
 result
 plot(result)
 #plot(result, type =  "weights")
@@ -70,6 +73,7 @@ result$Theta
 output = result$Beta %*% result$Theta
 output = data.frame(output)
 colnames(output) = paste(embryoNumber, cellNumber, sep = "_")
+output
 ```
 
 ```{r}

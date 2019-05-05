@@ -31,14 +31,18 @@ for i in range(0,len(mapD_selected)):
         embryoNumber = mapD_selected.iloc[i]['sample'].split("_")[0].split("TVEMB")[1]
         cellNumber = mapD_selected.iloc[i]['sample'].split("_")[1]
         for line in enumerate(open(perBinFilePath + getPerBinFileName(embryoNumber, cellNumber))):
-            outputFileName = 'cn2_TVEMB'+embryoNumber+'_'+cellNumber+'.txt'
-            outputFile_cn2_bin = open(outputFileName, 'a+')
-            if line[1].split()[4] == '2':
-                outputFileName = 'cn2_TVEMB'+embryoNumber+'_'+cellNumber+'.txt'
-                outputFile_cn2_bin = open(outputFileName, 'a+')
+            outputFileName_cn1 = 'cn1.txt'
+            outputFileName_cn2 = 'cn2.txt'
+            outputFileName_cn3 = 'cn3.txt'
+            outputFile_cn1_bin = open(outputFileName_cn1, 'a+')
+            outputFile_cn2_bin = open(outputFileName_cn2, 'a+')
+            outputFile_cn3_bin = open(outputFileName_cn3, 'a+')
+            if line[1].split()[4] == '1':
+                outputFile_cn1_bin.write(line[1].split()[0]+'\t'+line[1].split()[1]+'\t'+line[1].split()[2]+'\t'+line[1].split()[5]+'\n')
+            elif line[1].split()[4] == '2':
                 outputFile_cn2_bin.write(line[1].split()[0]+'\t'+line[1].split()[1]+'\t'+line[1].split()[2]+'\t'+line[1].split()[5]+'\n')
-            else:
-                outputFile_cn2_bin.write(line[1].split()[0]+'\t'+line[1].split()[1]+'\t'+line[1].split()[2]+'\t'+'NA'+'\n')
+            elif line[1].split()[4] == '3':
+                outputFile_cn3_bin.write(line[1].split()[0]+'\t'+line[1].split()[1]+'\t'+line[1].split()[2]+'\t'+line[1].split()[5]+'\n')
 
 
 

@@ -349,11 +349,19 @@ print(plot)
 ```{r fig.height=16, fig.width=12}
 data_stage = cbind(data_combined[c(1,2,3,ncol(data_combined))], data_day1[ncol(data_day1)], data_day2[ncol(data_day2)], data_day3[ncol(data_day3)], data_day4[ncol(data_day4)], data_day5[ncol(data_day5)], data_day6[ncol(data_day6)])
 
+data_stage["day1_diff"] = data_stage$day1_median-data_stage$combined_median
+data_stage["day2_diff"] = data_stage$day2_median-data_stage$combined_median
+data_stage["day3_diff"] = data_stage$day3_median-data_stage$combined_median
+data_stage["day4_diff"] = data_stage$day4_median-data_stage$combined_median
+data_stage["day5_diff"] = data_stage$day5_median-data_stage$combined_median
+data_stage["day6_diff"] = data_stage$day6_median-data_stage$combined_median
+
+
 #dim(data_stage)[2]
-for (i in 5:ncol(data_stage)){
+for (i in c(11:ncol(data_stage))){
   plot_logRratio = data.frame()
   for (j in chromosomeNumber){
-    plotData_ratio = subset(data_stage, (data_stage$chr==j))[c(2,4,i)]
+    plotData_ratio = subset(data_stage, (data_stage$chr==j))[c(2,i)]
     logR_ratio = melt(plotData_ratio, "start")
     logR_ratio$Chr = j
     plot_logRratio = rbind(plot_logRratio, logR_ratio)
@@ -362,8 +370,8 @@ for (i in 5:ncol(data_stage)){
   plot = ggplot(plot_logRratio, aes(start, value, group=variable, color = variable)) +
     geom_point(size = 0.1) + 
     facet_wrap(~facet, scales = "free_x", ncol = 3) +
-    ylim(-50,50) +
-    labs(x = "Position", y = "logR_ratio", color = NULL) +
+    ylim(-20,20) +
+    labs(x = "Position", y = "logR_ratio_diff", color = NULL) +
     theme(legend.position = "bottom")
   print(plot)
 }

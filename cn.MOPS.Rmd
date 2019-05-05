@@ -131,7 +131,7 @@ for (i in 1:length(cellNumber)){
 
 
 
-#```{r fig.height=16, fig.width=12}
+```{r fig.height=16, fig.width=12}
 fileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/logr_cn_per_bin/TVEMB6_1.250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
 data = read.table(fileName, sep = "\t", header = TRUE)
 data = cbind(data, gc[2])
@@ -143,7 +143,7 @@ q
 
 
 plot logR with ggplot per chromosome per cell
-#```{r}
+```{r}
 result.plot = result.normalised
 result.plot$position = result.normalised$Length/2 + result.normalised$Start
 chromosomeNumber = c(seq(1,22), "X")
@@ -177,7 +177,7 @@ dev.off()
 ###CHROMOSOME LABEL X????
 
 ```
-#```{r}
+```{r}
 write.table(result.normalised, file = "embryo14142.txt", sep = "\t" )
 embryo41 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/embryo41.txt", sep = "\t", header = TRUE)
 #embryo42 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/embryo42.txt", sep = "\t", header = TRUE)
@@ -211,7 +211,7 @@ dev.off()
 ```
 
 plot cn.mops against current logR values
-#```{r}
+```{r}
 embryoNumber = c(6)
 cellNumber = list(c(1))
 rowName = read.table("/Users/Yibing/Bioinfo-Master-Thesis/Output/rowName.txt", header = TRUE)
@@ -233,7 +233,7 @@ data.plot = cbind(data[c(2:5)], data.plot)
 data.plot$position = result.normalised$Length/2 + result.normalised$Start
 ```
 
-#```{r fig.height=16, fig.width=12}
+```{r fig.height=16, fig.width=12}
 chromosomeNumber = c(seq(1,22), "X")
 
 
@@ -264,7 +264,7 @@ dev.off()
 }
 ```
 
-#```{r fig.height=16, fig.width=12}
+```{r fig.height=16, fig.width=12}
 #plotData = data.plot[c(1, 2, 5, 7)]
 plot = ggplot(data=data.plot) + 
 geom_point(aes(x = Start, y = currentTVEMB6_2)) + 
@@ -278,7 +278,7 @@ data.plot
 
 
 
-#```{r fig.height=16, fig.width=12}
+```{r fig.height=16, fig.width=12}
 fileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/logr_cn_per_bin/TVEMB6_2.250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt"
 data = read.table(fileName, sep = "\t", header = TRUE)
 q <- ggplot(data=data) + geom_point(aes(x=start,y=LogR)) + facet_wrap(.~chr, ncol = 3, scales = "free_x")
@@ -286,7 +286,7 @@ q
 data
 ```
 
-#```{r}
+```{r}
 fileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/raw_counts/TVEMB6_2.250K.101.sorted.count-t"
 data.output = read.table(fileName, sep = "\t", header = FALSE)
 #data.output
