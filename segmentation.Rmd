@@ -1,0 +1,808 @@
+```{r}
+library(openxlsx)
+stimulate_dataset_list = loadWorkbook('Stimulate dataset list.xlsx')
+# Renaming sheets to removes spaces in names
+sheetNames = sheets(stimulate_dataset_list)
+sheetNames = lapply(sheetNames, trimws) # Trimming away trailing space
+newSheetNames = c()
+for (sheetName in sheetNames) {
+  sheetName = gsub(" ", "_", sheetName)
+  newSheetNames[sheetName] = sheetName 
+}
+sheetNames = newSheetNames
+# Assigning each sheet to a dataframe
+for(i in 1:length(sheetNames)){
+  assign(sheetNames[i],readWorkbook(stimulate_dataset_list,sheet = i))
+}
+Single_CNV = Single_CNV[-1,]
+colnames(Single_CNV) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
+CN1_CN3 = CN1_CN3[-1,]
+colnames(CN1_CN3) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
+```
+
+PLA
+
+shared single cnv
+```{r}
+parameter_pla = c(0.2, 0.4, 0.6)
+gamma = 15
+#data_pla_control_cn1 = read.csv(file = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/low rank component/0.3/Control/lrc_0.3_positive_control_cn1.csv", header = FALSE, sep = ",")
+#data_pla_control_cn3 = read.csv(file = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/low rank component/0.3/Control/lrc_0.3_positive_control_cn3.csv", header = FALSE, sep = ",")
+for (parameter in parameter_pla){
+  filename_negativecontrol = paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Control/lrc_", sep = ""), parameter, sep = ""), "_negative_control.csv", sep = "")
+  data_pla_control_cn2 = read.csv(file = filename_negativecontrol, header = FALSE, sep = ",")
+  LogRlev = mean(rowMeans(as.matrix(data_pla_control_cn2)))
+  CN_ref =2
+  ploidy = CN_ref/2^LogRlev
+  
+  for (row_number in 1:nrow(Single_CNV)){
+    length = as.numeric(Single_CNV$length[row_number])
+    cn1_start_position = as.numeric(Single_CNV$cn1_start[row_number])
+    cn3_start_position = as.numeric(Single_CNV$cn3_start[row_number])
+    
+    cnv_size = as.numeric(Single_CNV$cnv_size[row_number])
+    total_number = as.numeric(Single_CNV$total_number_of_samples[row_number])
+    number_no_cnv = as.numeric(Single_CNV$cn2_number_of_samples[row_number])
+    number_cnv_cn1 = as.numeric(Single_CNV$cn1_number_of_samples[row_number])
+    number_cnv_cn3 = as.numeric(Single_CNV$cn3_number_of_samples[row_number])
+    
+    for (n in 1:5){
+      lrc_filename = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result/", "lrc", sep = "/"), parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      data_pla_lrc = read.csv(file = lrc_filename, header = FALSE, sep = ",")
+      position = c(1:1000)
+      data_pla_lrc = cbind(position, data_pla_lrc)
+      colnames(data_pla_lrc) = c("position", paste("sample", 1:total_number, sep = "_"))
+      
+      for (i in 1:number_no_cnv){
+        column_name = paste(paste("sample", i, sep = "_"), "cn", sep = "_")
+        stimulate_cn = as.data.frame(rep(2, 1000))
+        colnames(stimulate_cn) = column_name
+        data_pla_lrc = cbind(data_pla_lrc, stimulate_cn)
+      }
+      #cn1 stimulated data
+      if (number_cnv_cn1 != 0){
+        for (i in 1:number_cnv_cn1){
+          column_name = paste(paste("sample", number_no_cnv+i, sep = "_"), "cn", sep = "_")
+          if (cn1_start_position!=1){
+            stimulate_cn = as.data.frame(c(rep(2, cn1_start_position-1), rep(1, cnv_size), rep(2, length-cn1_start_position-cnv_size+1)))
+          }
+          else{
+            stimulate_cn = as.data.frame(rep(1, 1000))
+          }
+          colnames(stimulate_cn) = column_name
+          data_pla_lrc = cbind(data_pla_lrc, stimulate_cn)
+        }
+      }
+      #cn3 stimulated data
+      if (number_cnv_cn3 != 0){
+        for (i in 1:number_cnv_cn3){
+          column_name = paste(paste("sample", number_no_cnv+i, sep = "_"), "cn", sep = "_")
+          if (cn3_start_position!=1){
+            stimulate_cn = as.data.frame(c(rep(2, cn3_start_position-1), rep(3, cnv_size), rep(2, length-cn3_start_position-cnv_size+1)))
+          }
+          else{
+            stimulate_cn = as.data.frame(rep(3, 1000))
+          }
+          colnames(stimulate_cn) = column_name
+          data_pla_lrc = cbind(data_pla_lrc, stimulate_cn)
+        }
+      }
+      
+      for (i in 1:total_number){
+        data_pla_sample = data_pla_lrc[i+1]
+        sdev=getMad(data_pla_sample,k=25)
+        res=selectFastPcf(as.numeric(unlist(data_pla_sample)),3,gamma*sdev,T)
+        segments=res$yhat #  segments=res$yhat      
+        #plot(segments)
+        data_pla_lrc[c(paste(paste("sample", i, sep = "_"), "cn_cal", sep = "_"))] = pmax(round(2^(segments+log(ploidy,2))),0)
+      }
+      writeFileName = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result_seg/lrc", sep = "/"), parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      write.csv(data_pla_lrc, file = writeFileName)
+      
+      print(lrc_filename)
+      
+    }
+  }
+}
+```
+shared CN1&3
+
+```{r}
+gamma = 15
+for (parameter in parameter_pla){
+  
+  filename_negativecontrol = paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Control/lrc_", sep = ""), parameter, sep = ""), "_negative_control.csv", sep = "")
+  data_pla_control_cn2 = read.csv(file = filename_negativecontrol, header = FALSE, sep = ",")
+  #data_pla_control_cn1 = read.csv(file = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/low rank component/0.3/Control/lrc_0.3_positive_control_cn1.csv", header = FALSE, sep = ",")
+  #data_pla_control_cn3 = read.csv(file = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/low rank component/0.3/Control/lrc_0.3_positive_control_cn3.csv", header = FALSE, sep = ",")
+  
+  LogRlev = mean(rowMeans(as.matrix(data_pla_control_cn2)))
+  CN_ref =2
+  ploidy = CN_ref/2^LogRlev
+  
+  for (row_number in 1:nrow(CN1_CN3)){
+    length = as.numeric(CN1_CN3$length[row_number])
+    cn1_start_position = as.numeric(CN1_CN3$cn1_start[row_number])
+    cn3_start_position = as.numeric(CN1_CN3$cn3_start[row_number])
+    
+    cnv_size = as.numeric(CN1_CN3$cnv_size[row_number])
+    total_number = as.numeric(CN1_CN3$total_number_of_samples[row_number])
+    number_no_cnv = as.numeric(CN1_CN3$cn2_number_of_samples[row_number])
+    number_cnv_cn1 = as.numeric(CN1_CN3$cn1_number_of_samples[row_number])
+    number_cnv_cn3 = as.numeric(CN1_CN3$cn3_number_of_samples[row_number])
+    
+    for (n in 1:5){
+      lrc_filename = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result/", "lrc", sep = "/"), parameter, sep = "_"), "CNV13", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      data_pla_lrc = read.csv(file = lrc_filename, header = FALSE, sep = ",")
+      position = c(1:1000)
+      data_pla_lrc = cbind(position, data_pla_lrc)
+      colnames(data_pla_lrc) = c("position", paste("sample", 1:total_number, sep = "_"))
+      
+      for (i in 1:number_no_cnv){
+        column_name = paste(paste("sample", i, sep = "_"), "cn", sep = "_")
+        stimulate_cn = as.data.frame(rep(2, 1000))
+        colnames(stimulate_cn) = column_name
+        data_pla_lrc = cbind(data_pla_lrc, stimulate_cn)
+      }
+      #cn1 stimulated data
+      if (number_cnv_cn1 != 0){
+        for (i in 1:number_cnv_cn1){
+          column_name = paste(paste("sample", number_no_cnv+i, sep = "_"), "cn", sep = "_")
+          if (cn1_start_position!=1){
+            stimulate_cn = as.data.frame(c(rep(2, cn1_start_position-1), rep(1, cnv_size), rep(2, length-cn1_start_position-cnv_size+1)))
+          }
+          else{
+            stimulate_cn = as.data.frame(rep(1, 1000))
+          }
+          colnames(stimulate_cn) = column_name
+          data_pla_lrc = cbind(data_pla_lrc, stimulate_cn)
+        }
+      }
+      #cn3 stimulated data
+      if (number_cnv_cn3 != 0){
+        for (i in 1:number_cnv_cn3){
+          column_name = paste(paste("sample", number_no_cnv+number_cnv_cn1+i, sep = "_"), "cn", sep = "_")
+          if (cn3_start_position!=1){
+            stimulate_cn = as.data.frame(c(rep(2, cn3_start_position-1), rep(3, cnv_size), rep(2, length-cn3_start_position-cnv_size+1)))
+          }
+          else{
+            stimulate_cn = as.data.frame(rep(3, 1000))
+          }
+          colnames(stimulate_cn) = column_name
+          data_pla_lrc = cbind(data_pla_lrc, stimulate_cn)
+        }
+      }
+      i=10
+      for (i in 1:total_number){
+        data_pla_sample = data_pla_lrc[i+1]
+        sdev=getMad(data_pla_sample,k=25)
+        res=selectFastPcf(as.numeric(unlist(data_pla_sample)),3,gamma*sdev,T)
+        segments=res$yhat
+        #plot(segments)
+        data_pla_lrc[c(paste(paste("sample", i, sep = "_"), "cn_cal", sep = "_"))] = pmax(round(2^(segments+log(ploidy,2))),0)
+      }
+      writeFileName = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result_seg/lrc", sep = "/"), parameter, sep = "_"), "CNV13", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      write.csv(data_pla_lrc, file = writeFileName)
+      
+      print(lrc_filename)
+      
+    }
+  }
+}
+
+
+```
+FLLat
+```{r}
+gamma = 15
+
+filename_negativecontrol = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/FLLat/negative_control_FLLat_result.csv"
+data_pla_control_cn2 = read.csv(file = filename_negativecontrol, header = TRUE, sep = ",")
+
+LogRlev = 0.01823383#median(rowMeans(as.matrix(data_pla_control_cn2)))
+CN_ref =2
+ploidy = CN_ref/2^LogRlev
+
+for (row_number in 1:nrow(Single_CNV)){
+  length = as.numeric(Single_CNV$length[row_number])
+  cn1_start_position = as.numeric(Single_CNV$cn1_start[row_number])
+  cn3_start_position = as.numeric(Single_CNV$cn3_start[row_number])
+  
+  cnv_size = as.numeric(Single_CNV$cnv_size[row_number])
+  total_number = as.numeric(Single_CNV$total_number_of_samples[row_number])
+  number_no_cnv = as.numeric(Single_CNV$cn2_number_of_samples[row_number])
+  number_cnv_cn1 = as.numeric(Single_CNV$cn1_number_of_samples[row_number])
+  number_cnv_cn3 = as.numeric(Single_CNV$cn3_number_of_samples[row_number])
+  for (n in 1:5){
+    filename = paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/FLLat/SD/SD_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "FLLat_result", sep = "_"), "csv", sep = ".")
+    data_fllat = read.csv(file = filename, header = TRUE, sep = ",")
+    
+    for (i in 1:number_no_cnv){
+      column_name = paste(paste("sample", i, sep = "_"), "cn", sep = "_")
+      stimulate_cn = as.data.frame(rep(2, 1000))
+      colnames(stimulate_cn) = column_name
+      data_fllat = cbind(data_fllat, stimulate_cn)
+    }
+    #cn1 stimulated data
+    if (number_cnv_cn1 != 0){
+      for (i in 1:number_cnv_cn1){
+        column_name = paste(paste("sample", number_no_cnv+i, sep = "_"), "cn", sep = "_")
+        if (cn1_start_position!=1){
+          stimulate_cn = as.data.frame(c(rep(2, cn1_start_position-1), rep(1, cnv_size), rep(2, length-cn1_start_position-cnv_size+1)))
+        }
+        else{
+          stimulate_cn = as.data.frame(rep(1, 1000))
+        }
+        colnames(stimulate_cn) = column_name
+        data_fllat = cbind(data_fllat, stimulate_cn)
+      }
+    }
+    #cn3 stimulated data
+    if (number_cnv_cn3 != 0){
+      for (i in 1:number_cnv_cn3){
+        column_name = paste(paste("sample", number_no_cnv+i, sep = "_"), "cn", sep = "_")
+        if (cn3_start_position!=1){
+          stimulate_cn = as.data.frame(c(rep(2, cn3_start_position-1), rep(3, cnv_size), rep(2, length-cn3_start_position-cnv_size+1)))
+        }
+        else{
+          stimulate_cn = as.data.frame(rep(3, 1000))
+        }
+        colnames(stimulate_cn) = column_name
+        data_fllat = cbind(data_fllat, stimulate_cn)
+      }
+    }
+    for (i in 1:total_number){
+      data_fllat_sample = unlist(data_fllat[i+2])
+      if(mean(data_fllat_sample)!=0){
+        sdev=getMad(data_fllat_sample,k=25)
+        res=selectFastPcf(as.numeric(data_fllat_sample),3,gamma*sdev,T)
+        segments=res$yhat #  segments=res$yhat      
+        #plot(segments)
+        data_fllat[c(paste(paste("sample", i, sep = "_"), "cn_cal", sep = "_"))] = pmax(round(2^(segments+log(ploidy,2))),0)
+      }
+      else{
+        data_fllat[c(paste(paste("sample", i, sep = "_"), "cn_cal", sep = "_"))] = "NA"
+      }
+    }
+    writeFileName = paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/FLLat/Result/SD", total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+    write.csv(data_fllat, file = writeFileName)
+  }
+}
+```
+
+
+
+PCF-ALGORITHM (KL):
+```{r}
+#PCF-ALGORITHM (KL):
+### EXACT version
+exactPcf <- function(y, kmin=5, gamma, yest) {
+  ## Implementaion of exact PCF by Potts-filtering
+  ## x: input array of (log2) copy numbers
+  ## kmin: Mininal length of plateaus
+  ## gamma: penalty for each discontinuity
+  N <- length(y)
+  yhat <- rep(0,N);
+  if (N < 2*kmin) {
+    if (yest) {
+      return(list(Lengde = N, sta = 1, mean = mean(y), nIntervals=1, yhat=rep(mean(y),N)))
+    } else {
+      return(list(Lengde = N, sta = 1, mean = mean(y), nIntervals=1))
+    }
+  }
+  initSum <- sum(y[1:kmin])
+  initKvad <- sum(y[1:kmin]^2)
+  initAve <- initSum/kmin;
+  bestCost <- rep(0,N)
+  bestCost[kmin] <- initKvad - initSum*initAve
+  bestSplit <- rep(0,N)
+  bestAver <- rep(0,N)
+  bestAver[kmin] <- initAve
+  Sum <- rep(0,N)
+  Kvad <- rep(0,N)
+  Aver <- rep(0,N)
+  Cost <- rep(0,N)
+  kminP1=kmin+1
+  for (k in (kminP1):(2*kmin-1)) {
+    Sum[kminP1:k]<-Sum[kminP1:k]+y[k]
+    Aver[kminP1:k] <- Sum[kminP1:k]/((k-kmin):1)
+    Kvad[kminP1:k] <- Kvad[kminP1:k]+y[k]^2
+    bestAver[k] <- (initSum+Sum[kminP1])/k
+    bestCost[k] <- (initKvad+Kvad[kminP1])-k*bestAver[k]^2
+  }
+  for (n in (2*kmin):N) {
+    yn <- y[n]
+    yn2 <- yn^2
+    Sum[kminP1:n] <- Sum[kminP1:n]+yn
+    Aver[kminP1:n] <- Sum[kminP1:n]/((n-kmin):1)
+    Kvad[kminP1:n] <- Kvad[kminP1:n]+yn2
+    nMkminP1=n-kmin+1
+    Cost[kminP1:nMkminP1] <- bestCost[kmin:(n-kmin)]+Kvad[kminP1:nMkminP1]-Sum[kminP1:nMkminP1]*Aver[kminP1:nMkminP1]+gamma
+    Pos <- which.min(Cost[kminP1:nMkminP1])+kmin
+    cost <- Cost[Pos]
+    aver <- Aver[Pos]
+    totAver <- (Sum[kminP1]+initSum)/n
+    totCost <- (Kvad[kminP1]+initKvad) - n*totAver*totAver
+    if (totCost < cost) {
+      Pos <- 1
+      cost <- totCost
+      aver <- totAver
+    }
+    bestCost[n] <- cost
+    bestAver[n] <- aver
+    bestSplit[n] <- Pos-1
+  }
+  n <- N
+  antInt <- 0
+  if(yest){
+    while (n > 0) {
+      yhat[(bestSplit[n]+1):n] <- bestAver[n]
+      n <- bestSplit[n]
+      antInt <- antInt+1
+    }
+  } else {
+    while (n > 0) {
+      n <- bestSplit[n]
+      antInt <- antInt+1
+    }
+  }
+  n <- N  #nProbes   Spr Knut, fant ikke nProbes noe sted..
+  lengde <- rep(0,antInt)
+  start <- rep(0,antInt)
+  verdi <- rep(0,antInt)
+  oldSplit  <- n
+  antall <- antInt
+  while (n > 0) {
+    start[antall] <- bestSplit[n]+1
+    lengde[antall] <- oldSplit-bestSplit[n]
+    verdi[antall] <- bestAver[n]
+    n <- bestSplit[n]
+    oldSplit <- n
+    antall <- antall-1
+  }
+  if (yest) {
+    return(list(Lengde = lengde, sta = start, mean = verdi, nIntervals=antInt, yhat=yhat))
+  } else {
+    return(list(Lengde = lengde, sta = start, mean = verdi, nIntervals=antInt))
+  }
+}
+
+
+
+selectFastPcf <- function(x,kmin,gamma,yest){
+  xLength <- length(x)
+  if (xLength< 1000) {
+    result<-runFastPcf(x,kmin,gamma,0.15,0.15,yest)
+  } else {
+    if (xLength < 15000){
+      result<-runFastPcf(x,kmin,gamma,0.12,0.05,yest)
+    } else  {
+      result<-runPcfSubset(x,kmin,gamma,0.12,0.05,yest)
+    }
+  }
+  return(result)
+}
+
+
+runFastPcf <- function(x,kmin,gamma,frac1,frac2,yest){
+  antGen <- length(x)
+  mark<-filterMarkS4(x,kmin,8,1,frac1,frac2,0.02,0.9)
+  mark[antGen]=TRUE
+  dense <- compact(x,mark)
+  #print(dense$Nr)
+  #print(frac2)
+  result<-PottsCompact(kmin,gamma,dense$Nr,dense$Sum,dense$Sq,yest)
+  return(result)
+}
+
+runPcfSubset <- function(x,kmin,gamma,frac1,frac2,yest){
+  SUBSIZE <- 5000
+  antGen <- length(x)
+  mark<-filterMarkS4(x,kmin,8,1,frac1,frac2,0.02,0.9)
+  markInit<-c(mark[1:(SUBSIZE-1)],TRUE)
+  compX<-compact(x[1:SUBSIZE],markInit)
+  mark2 <- rep(FALSE,antGen)
+  mark2[1:SUBSIZE] <- markWithPotts(kmin,gamma,compX$Nr,compX$Sum,compX$Sq,SUBSIZE)
+  mark2[4*SUBSIZE/5]<-TRUE
+  start <- 4*SUBSIZE/5+1
+  while(start + SUBSIZE < antGen){
+    slutt<-start+SUBSIZE-1
+    markSub<-c(mark2[1:(start-1)],mark[start:slutt])
+    markSub[slutt] <- TRUE
+    compX<-compact(x[1:slutt],markSub)
+    mark2[1:slutt] <- markWithPotts(kmin,gamma,compX$Nr,compX$Sum,compX$Sq,slutt)
+    start <- start+4*SUBSIZE/5
+    mark2[start-1]<-TRUE
+  }
+  markSub<-c(mark2[1:(start-1)],mark[start:antGen])
+  compX<-compact(x,markSub)
+  result <- PottsCompact(kmin,gamma,compX$Nr,compX$Sum,compX$Sq,yest)
+  return(result)
+}
+
+PottsCompact <- function(kmin, gamma, nr, res, sq, yest) {
+  ## Potts filtering on compact array;
+  ## kmin: minimal length of plateau
+  ## gamma: penalty for discontinuity
+  ## nr: number of values between breakpoints
+  ## res: sum of values between breakpoints
+  ## sq: sum of squares of values between breakpoints
+  
+  N <- length(nr)
+  Ant <- rep(0,N)
+  Sum <- rep(0,N)
+  Kvad <- rep(0,N)
+  Cost <- rep(0,N)
+  if (sum(nr) < 2*kmin){
+    estim <- sum(res)/sum(nr)
+    return(estim)
+  }
+  initAnt <- nr[1]
+  initSum <- res[1]
+  initKvad <- sq[1]
+  initAve <- initSum/initAnt
+  bestCost <- rep(0,N)
+  bestCost[1] <- initKvad - initSum*initAve
+  bestSplit <- rep(0,N)
+  k <- 2
+  while(sum(nr[1:k]) < 2*kmin) {
+    Ant[2:k] <- Ant[2:k]+nr[k]
+    Sum[2:k]<-Sum[2:k]+res[k]
+    Kvad[2:k] <- Kvad[2:k]+sq[k]
+    bestCost[k] <- (initKvad+Kvad[2])-(initSum+Sum[2])^2/(initAnt+Ant[2])
+    k <- k+1    
+  }
+  for (n in k:N) {
+    Ant[2:n] <- Ant[2:n]+nr[n]
+    Sum[2:n] <- Sum[2:n]+res[n]
+    Kvad[2:n] <- Kvad[2:n]+sq[n]
+    limit <- n
+    while(limit > 2 & Ant[limit] < kmin) {limit <- limit-1}
+    Cost[2:limit] <- bestCost[1:limit-1]+Kvad[2:limit]-Sum[2:limit]^2/Ant[2:limit]
+    Pos <- which.min(Cost[2:limit])+ 1
+    cost <- Cost[Pos]+gamma
+    totCost <- (Kvad[2]+initKvad) - (Sum[2]+initSum)^2/(Ant[2]+initAnt)
+    if (totCost < cost) {
+      Pos <- 1
+      cost <- totCost
+    }
+    bestCost[n] <- cost
+    bestSplit[n] <- Pos-1
+  }
+  if (yest) {
+    yhat<-rep(0,N)
+    res<-findEst(bestSplit,N,nr,res,TRUE)
+  } else {
+    res<-findEst(bestSplit,N,nr,res,FALSE)
+  }
+  return(res)
+}
+
+compact <- function(y,mark){
+  ## accumulates numbers of observations, sums and 
+  ## sums of squares between potential breakpoints
+  N <- length(y)
+  tell<-seq(1:N)
+  cCTell<-tell[mark]
+  Ncomp<-length(cCTell)
+  lowTell<-c(0,cCTell[1:(Ncomp-1)])
+  ant<-cCTell-lowTell
+  cy<-cumsum(y)
+  cCcy<-cy[mark]
+  lowcy<-c(0,cCcy[1:(Ncomp-1)])
+  sum<-cCcy-lowcy
+  y2<-y^2
+  cy2<-cumsum(y2)
+  cCcy2<-cy2[mark]
+  lowcy2<-c(0,cCcy2[1:(Ncomp-1)])
+  sq<-cCcy2-lowcy2
+  return(list(Nr=ant,Sum=sum,Sq=sq))
+}
+
+findEst <- function(bestSplit,N,Nr,Sum,yest){
+  n<-N
+  lengde<-rep(0,N)
+  antInt<-0
+  while (n>0){
+    antInt<-antInt+1
+    lengde[antInt] <- n-bestSplit[n]
+    n<-bestSplit[n]
+  }
+  lengde<-lengde[antInt:1]
+  lengdeOrig<-rep(0,antInt)
+  startOrig<-rep(1,antInt+1)
+  verdi<-rep(0,antInt)
+  start<-rep(1,antInt+1)
+  for(i in 1:antInt){
+    start[i+1] <- start[i]+lengde[i]
+    lengdeOrig[i] <- sum(Nr[start[i]:(start[i+1]-1)])
+    startOrig[i+1] <- startOrig[i]+lengdeOrig[i]
+    verdi[i]<-sum(Sum[start[i]:(start[i+1]-1)])/lengdeOrig[i]
+  }
+  
+  if(yest){
+    yhat<-rep(0,startOrig[antInt+1]-1)
+    for (i in 1:antInt){
+      yhat[startOrig[i]:(startOrig[i+1]-1)]<-verdi[i]
+    }
+    startOrig<-startOrig[1:antInt]
+    return(list(Lengde=lengdeOrig,sta=startOrig,mean=verdi,nIntervals=antInt,yhat=yhat))
+  } else {
+    startOrig<-startOrig[1:antInt]
+    return(list(Lengde=lengdeOrig,sta=startOrig,mean=verdi,nIntervals=antInt))
+  }
+  
+}
+
+
+markWithPotts <- function(kmin, gamma, nr, res, sq, subsize) {
+  ## Potts filtering on compact array;
+  ## kmin: minimal length of plateau
+  ## gamma: penalty for discontinuity
+  ## nr: number of values between breakpoints
+  ## res: sum of values between breakpoints
+  ## sq: sum of squares of values between breakpoints
+  
+  N <- length(nr)
+  Ant <- rep(0,N)
+  Sum <- rep(0,N)
+  Kvad <- rep(0,N)
+  Cost <- rep(0,N)
+  markSub <- rep(FALSE,N)
+  initAnt <- nr[1]
+  initSum <- res[1]
+  initKvad <- sq[1]
+  initAve <- initSum/initAnt
+  bestCost <- rep(0,N)
+  bestCost[1] <- initKvad - initSum*initAve
+  bestSplit <- rep(0,N)
+  k <- 2
+  while(sum(nr[1:k]) < 2*kmin) {
+    Ant[2:k] <- Ant[2:k]+nr[k]
+    Sum[2:k]<-Sum[2:k]+res[k]
+    Kvad[2:k] <- Kvad[2:k]+sq[k]
+    bestCost[k] <- (initKvad+Kvad[2])-(initSum+Sum[2])^2/(initAnt+Ant[2])
+    k <- k+1    
+  }
+  for (n in k:N) {
+    Ant[2:n] <- Ant[2:n]+nr[n]
+    Sum[2:n] <- Sum[2:n]+res[n]
+    Kvad[2:n] <- Kvad[2:n]+sq[n]
+    limit <- n
+    while(limit > 2 & Ant[limit] < kmin) {limit <- limit-1}
+    Cost[2:limit] <- bestCost[1:limit-1]+Kvad[2:limit]-Sum[2:limit]^2/Ant[2:limit]
+    Pos <- which.min(Cost[2:limit])+ 1
+    cost <- Cost[Pos]+gamma
+    totCost <- (Kvad[2]+initKvad) - (Sum[2]+initSum)^2/(Ant[2]+initAnt)
+    if (totCost < cost) {
+      Pos <- 1
+      cost <- totCost
+    }
+    bestCost[n] <- cost
+    bestSplit[n] <- Pos-1
+    markSub[Pos-1] <- TRUE
+  }
+  help<-findMarks(markSub,nr,subsize)
+  return(help=help)
+}
+
+
+findMarks <- function(markSub,Nr,subsize){
+  ## markSub: marks in compressed scale
+  ## NR: number of observations between potenstial breakpoints
+  mark<-rep(FALSE,subsize)  ## marks in original scale
+  if(sum(markSub)<1) {return(mark)} else {  
+    N<-length(markSub)
+    ant <- seq(1:N)
+    help <- ant[markSub]
+    lengdeHelp<-length(help)
+    help0 <- c(0,help[1:(lengdeHelp-1)])
+    lengde <- help-help0
+    start<-1
+    oldStart<-1
+    startOrig<-1
+    for(i in 1:lengdeHelp){
+      start <- start+lengde[i]
+      lengdeOrig <- sum(Nr[oldStart:(start-1)])
+      startOrig <- startOrig+lengdeOrig
+      mark[startOrig-1]<-TRUE
+      oldStart<-start
+    }
+    return(mark)
+  }
+  
+}
+
+
+compact <- function(y,mark){
+  ## accumulates numbers of observations, sums and 
+  ## sums of squares between potential breakpoints
+  ## y:  array to be compacted
+  ## mark:  logical array of potential breakpoints
+  tell<-seq(1:length(y))
+  cCTell<-tell[mark]
+  Ncomp<-length(cCTell)
+  lowTell<-c(0,cCTell[1:(Ncomp-1)])
+  ant<-cCTell-lowTell
+  cy<-cumsum(y)
+  cCcy<-cy[mark]
+  lowcy<-c(0,cCcy[1:(Ncomp-1)])
+  sum<-cCcy-lowcy
+  cy2<-cumsum(y^2)
+  cCcy2<-cy2[mark]
+  lowcy2<-c(0,cCcy2[1:(Ncomp-1)])
+  sq<-cCcy2-lowcy2
+  return(list(Nr=ant,Sum=sum,Sq=sq))
+}
+
+filterMarkS4 <- function(x,kmin,L,L2,frac1,frac2,frac3,thres){
+  ## marks potential breakpoints, partially by a two 6*L and 6*L2 highpass
+  ## filters (L>L2), then by a filter seaching for potential kmin long segments
+  lengdeArr <- length(x)
+  xc<-cumsum(x)
+  xc<-c(0,xc)
+  ind11<-1:(lengdeArr-6*L+1)
+  ind12<-ind11+L
+  ind13<-ind11+3*L
+  ind14<-ind11+5*L
+  ind15<-ind11+6*L
+  cost1<-abs(4*xc[ind13]-xc[ind11]-xc[ind12]-xc[ind14]-xc[ind15])   
+  cost1<-c(rep(0,3*L-1),cost1,rep(0,3*L))
+  ##mark shortening in here
+  in1<-1:(lengdeArr-6)
+  in2<-in1+1
+  in3<-in1+2
+  in4<-in1+3
+  in5<-in1+4
+  in6<-in1+5
+  in7<-in1+6
+  test<-pmax(cost1[in1],cost1[in2],cost1[in3],cost1[in4],cost1[in5],cost1[in6],cost1[in7])
+  test<-c(rep(0,3),test,rep(0,3))
+  cost1B<-cost1[cost1>=thres*test]
+  frac1B<-min(0.8,frac1*length(cost1)/length(cost1B))
+  limit <- quantile(cost1B,(1-frac1B),names=FALSE)
+  mark<-(cost1>limit)&(cost1>0.9*test)  
+  
+  
+  ind21<-1:(lengdeArr-6*L2+1)
+  ind22<-ind21+L2
+  ind23<-ind21+3*L2
+  ind24<-ind21+5*L2
+  ind25<-ind21+6*L2
+  cost2<-abs(4*xc[ind23]-xc[ind21]-xc[ind22]-xc[ind24]-xc[ind25])
+  limit2 <- quantile(cost2,(1-frac2),names=FALSE)
+  mark2<-(cost2>limit2)
+  mark2<-c(rep(0,3*L2-1),mark2,rep(0,3*L2))
+  if(3*L>kmin){
+    mark[kmin:(3*L-1)]<-TRUE
+    mark[(lengdeArr-3*L+1):(lengdeArr-kmin)]<-TRUE
+  }
+  else
+  {
+    mark[kmin]<- TRUE
+    mark[lengdeArr-kmin]<-TRUE
+  }
+  
+  if(kmin>1){
+    ind1<-1:(lengdeArr-3*kmin+1)
+    ind2<-ind1+3*kmin
+    ind3<-ind1+kmin
+    ind4<-ind1+2*kmin
+    shortAb <- abs(3*(xc[ind4]-xc[ind3])-(xc[ind2]-xc[ind1]))
+    in1<-1:(length(shortAb)-6)
+    in2<-in1+1
+    in3<-in1+2
+    in4<-in1+3
+    in5<-in1+4
+    in6<-in1+5
+    in7<-in1+6
+    test<-pmax(shortAb[in1],shortAb[in2],shortAb[in3],shortAb[in4],shortAb[in5],shortAb[in6],shortAb[in7])
+    test<-c(rep(0,3),test,rep(0,3))
+    cost1C<-shortAb[shortAb>=thres*test]
+    frac1C<-min(0.8,frac3*length(shortAb)/length(cost1C))
+    limit3 <- quantile(cost1C,(1-frac1C),names=FALSE)
+    markH1<-(shortAb>limit3)&(shortAb>thres*test)
+    markH2<-c(rep(FALSE,(kmin-1)),markH1,rep(FALSE,2*kmin))
+    markH3<-c(rep(FALSE,(2*kmin-1)),markH1,rep(FALSE,kmin))
+    mark<-mark|mark2|markH2|markH3
+  } else {
+    mark<-mark|mark2
+  }
+  
+  if(3*L>kmin){
+    mark[1:(kmin-1)]<-FALSE
+    mark[kmin:(3*L-1)]<-TRUE
+    mark[(lengdeArr-3*L+1):(lengdeArr-kmin)]<-TRUE
+    mark[(lengdeArr-kmin+1):(lengdeArr-1)]<-FALSE
+    mark[lengdeArr]<-TRUE   
+  }
+  else
+  {
+    mark[1:(kmin-1)]<-FALSE
+    mark[(lengdeArr-kmin+1):(lengdeArr-1)]<-FALSE
+    mark[lengdeArr]<-TRUE
+    mark[kmin]<- TRUE
+    mark[lengdeArr-kmin]<-TRUE
+  }
+  
+  return(mark)
+}
+
+#Get mad SD-estimate
+
+##Input:
+### x: vector of observations for which mad Sd is to be calculated
+### k: window size to be used in median filtering
+
+##Output:
+### SD: mad sd estimate
+
+##Required by:
+### multiPcf
+### fastPcf
+### pcf
+### aspcf
+
+
+##Requires:
+### medianFilter
+
+
+
+
+getMad <- function(x,k=25){
+  
+  #Remove observations that are equal to zero; are likely to be imputed, should not contribute to sd:
+  x <- x[x!=0]
+  
+  #Calculate runMedian  
+  runMedian <- medianFilter(x,k)
+  
+  dif <- x-runMedian
+  SD <- mad(dif)
+  
+  return(SD)
+}
+
+
+#########################################################################
+# Function to calculate running median for a given a window size
+#########################################################################
+
+##Input:
+### x: vector of numeric values
+### k: window size to be used for the sliding window (actually half-window size)
+
+## Output:
+### runMedian : the running median corresponding to each observation
+
+##Required by:
+### getMad
+### medianFilter
+
+
+##Requires:
+### none
+
+medianFilter <- function(x,k){
+  n <- length(x)
+  filtWidth <- 2*k + 1
+  
+  #Make sure filtWidth does not exceed n
+  if(filtWidth > n){
+    if(n==0){
+      filtWidth <- 1
+    }else if(n%%2 == 0){
+      #runmed requires filtWidth to be odd, ensure this:
+      filtWidth <- n - 1
+    }else{
+      filtWidth <- n
+    }
+  }
+  
+  runMedian <- runmed(x,k=filtWidth,endrule="median")
+  
+  return(runMedian)
+  
+}
+```

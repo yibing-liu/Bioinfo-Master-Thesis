@@ -1,0 +1,231 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+library(openxlsx)
+library(reshape)
+library(ggplot2)
+library(gridExtra)
+
+stimulate_dataset_list = loadWorkbook('Stimulate dataset list.xlsx')
+# Renaming sheets to removes spaces in names
+sheetNames = sheets(stimulate_dataset_list)
+sheetNames = lapply(sheetNames, trimws) # Trimming away trailing space
+
+newSheetNames = c()
+for (sheetName in sheetNames) {
+  sheetName = gsub(" ", "_", sheetName)
+  newSheetNames[sheetName] = sheetName 
+}
+sheetNames = newSheetNames
+
+# Assigning each sheet to a dataframe
+for(i in 1:length(sheetNames)){
+  assign(sheetNames[i],readWorkbook(stimulate_dataset_list,sheet = i))
+}
+
+Single_CNV = Single_CNV[-1,]
+colnames(Single_CNV) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
+
+CN1_CN3 = CN1_CN3[-1,]
+colnames(CN1_CN3) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
+```
+
+
+
+```{r, fig.height=16, fig.width=12}
+gamma = 15
+parameter_pla = c(0.2, 0.4)#, 0.6)
+
+for (parameter in parameter_pla){
+  for (row_number in 1:nrow(Single_CNV)){
+    length = as.numeric(Single_CNV$length[row_number])
+    cn1_start_position = as.numeric(Single_CNV$cn1_start[row_number])
+    cn3_start_position = as.numeric(Single_CNV$cn3_start[row_number])
+    
+    cnv_size = as.numeric(Single_CNV$cnv_size[row_number])
+    
+    total_number = as.numeric(Single_CNV$total_number_of_samples[row_number])
+    number_no_cnv = as.numeric(Single_CNV$cn2_number_of_samples[row_number])
+    number_cnv_cn1 = as.numeric(Single_CNV$cn1_number_of_samples[row_number])
+    number_cnv_cn3 = as.numeric(Single_CNV$cn3_number_of_samples[row_number])
+    
+    for (n in 1:5){
+      ori_data_filename = paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/SD_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      ori_data = read.csv(file = ori_data_filename, header = TRUE, sep = ",")
+      
+      lrc_filename = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result_seg/lrc", sep = "/"), parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      lrc_data = read.csv(file = lrc_filename, header = TRUE, sep = ",")
+      
+      sc_filename = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result/sc", sep = "/"), parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      sc_data = read.csv(file = sc_filename, header = FALSE, sep = ",")
+      position = c(1:1000)
+      sc_data = cbind(position, sc_data)
+      colnames(sc_data) = c("position", paste("sample", 1:total_number, sep = "_"))
+      
+      for (m in (number_no_cnv+1):total_number){
+        
+        graph_name = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(gamma,"",sep = ""),parameter, "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), m, sep = "_sample"), "run", sep = "_"), n, sep = "")
+        plotName = paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Graph", paste(graph_name, "pdf", sep = "."), sep = "/")
+        pdf(plotName, height = 16, width = 12)
+        plot_ori_data = ori_data[2+m]
+        position = c(1:1000)
+        data = cbind(position, plot_ori_data)
+        result.plot = melt(data, "position")
+        if (m<=number_no_cnv){
+          plot1 = ggplot(data=result.plot) + 
+            geom_point(aes(position, value), size = 1, color = "red") + 
+            geom_segment(aes(x = 1, y = 2, xend = length, yend = 2), color = "black", size = 1) +
+            ylim(-4,4) +
+            ggtitle(graph_name)
+        }
+        else{
+          plot1 = ggplot(data=result.plot) + 
+            geom_point(aes(position, value), size = 1, color = "red") + 
+            geom_segment(aes(x = 1, y = 2, xend = cn1_start_position-1, yend = 2), color = "black", size = 1) +
+            geom_segment(aes(x = 1, y = 2, xend = cn3_start_position-1, yend = 2), color = "black", size = 1) +
+            geom_segment(aes(x = cn1_start_position, y = 1, xend = cn1_start_position+cnv_size-1, yend = 1), color = "black", size = 1) +
+            geom_segment(aes(x = cn3_start_position, y = 3, xend = cn3_start_position+cnv_size-1, yend = 3), color = "black", size = 1) +
+            geom_segment(aes(x = cn1_start_position+cnv_size, y = 2, xend = length, yend = 2), color = "black", size = 1) +
+            geom_segment(aes(x = cn3_start_position+cnv_size, y = 2, xend = length, yend = 2), color = "black", size = 1) +
+            ylim(-4,4) +
+            ggtitle(graph_name)
+        }
+        
+        plot_lrc = lrc_data[c(2+m,2+m+2*total_number)]
+        position = c(1:1000)
+        data = cbind(position, plot_lrc)
+        result.plot = melt(data, "position")
+        plot2 = ggplot(data=result.plot) + 
+          geom_point(aes(position, value, group=variable, color = variable), size = 1) + 
+          theme(legend.position = "none") +
+          ylim(-4,4) 
+        
+        
+        plot_sc = sc_data[1+m]
+        position = c(1:1000)
+        data = cbind(position, plot_sc)
+        result.plot = melt(data, "position")
+        plot3 = ggplot(data=result.plot) + 
+          geom_point(aes(position, value), size = 0.5, color = "red") + 
+          ylim(-4,4) 
+        
+        
+        print(grid.arrange(plot1, plot2, plot3, nrow = 3))
+        dev.off()
+        
+      }
+      print(ori_data_filename)
+    }
+  }
+}
+
+
+
+```
+
+```{r}
+gamma = 15
+parameter_pla = c(0.2, 0.4)#, 0.6)
+
+for (parameter in parameter_pla){
+  for (row_number in 1:nrow(CN1_CN3)){
+    length = as.numeric(CN1_CN3$length[row_number])
+    cn1_start_position = as.numeric(CN1_CN3$cn1_start[row_number])
+    cn3_start_position = as.numeric(CN1_CN3$cn3_start[row_number])
+    
+    cnv_size = as.numeric(CN1_CN3$cnv_size[row_number])
+    
+    total_number = as.numeric(CN1_CN3$total_number_of_samples[row_number])
+    number_no_cnv = as.numeric(CN1_CN3$cn2_number_of_samples[row_number])
+    number_cnv_cn1 = as.numeric(CN1_CN3$cn1_number_of_samples[row_number])
+    number_cnv_cn3 = as.numeric(CN1_CN3$cn3_number_of_samples[row_number])
+    
+    for (n in 1:5){
+      ori_data_filename = paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/CNV13_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      ori_data = read.csv(file = ori_data_filename, header = TRUE, sep = ",")
+      
+      lrc_filename = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result_seg/lrc", sep = "/"), parameter, sep = "_"), "CNV13", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      lrc_data = read.csv(file = lrc_filename, header = TRUE, sep = ",")
+      
+      sc_filename = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result/sc", sep = "/"), parameter, sep = "_"), "CNV13", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      sc_data = read.csv(file = sc_filename, header = FALSE, sep = ",")
+      position = c(1:1000)
+      sc_data = cbind(position, sc_data)
+      colnames(sc_data) = c("position", paste("sample", 1:total_number, sep = "_"))
+      
+      for (m in (number_no_cnv+1):total_number){
+        
+        graph_name = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(gamma,"",sep = ""),parameter, "CNV13", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), m, sep = "_sample"), "run", sep = "_"), n, sep = "")
+        plotName = paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Graph", paste(graph_name, "pdf", sep = "."), sep = "/")
+        pdf(plotName, height = 16, width = 12)
+        plot_ori_data = ori_data[2+m]
+        position = c(1:1000)
+        data = cbind(position, plot_ori_data)
+        result.plot = melt(data, "position")
+        if (m<=number_no_cnv){
+          plot1 = ggplot(data=result.plot) + 
+            geom_point(aes(position, value), size = 1, color = "red") + 
+            geom_segment(aes(x = 1, y = 2, xend = length, yend = 2), color = "black", size = 1) +
+            ylim(-4,4) +
+            ggtitle(graph_name)
+        }
+        else{
+          if (m<=number_no_cnv+number_cnv_cn1){
+            plot1 = ggplot(data=result.plot) + 
+              geom_point(aes(position, value), size = 1, color = "red") + 
+              geom_segment(aes(x = 1, y = 2, xend = cn1_start_position-1, yend = 2), color = "black", size = 1) +
+              geom_segment(aes(x = 1, y = 2, xend = cn3_start_position-1, yend = 2), color = "black", size = 1) +
+              geom_segment(aes(x = cn1_start_position, y = 1, xend = cn1_start_position+cnv_size-1, yend = 1), color = "black", size = 1) +
+              geom_segment(aes(x = cn1_start_position+cnv_size, y = 2, xend = length, yend = 2), color = "black", size = 1) +
+              geom_segment(aes(x = cn3_start_position+cnv_size, y = 2, xend = length, yend = 2), color = "black", size = 1) +
+              ylim(-4,4) +
+              ggtitle(graph_name)
+          }
+          else{
+            plot1 = ggplot(data=result.plot) + 
+              geom_point(aes(position, value), size = 1, color = "red") + 
+              geom_segment(aes(x = 1, y = 2, xend = cn1_start_position-1, yend = 2), color = "black", size = 1) +
+              geom_segment(aes(x = 1, y = 2, xend = cn3_start_position-1, yend = 2), color = "black", size = 1) +
+              geom_segment(aes(x = cn3_start_position, y = 3, xend = cn3_start_position+cnv_size-1, yend = 3), color = "black", size = 1) +
+              geom_segment(aes(x = cn1_start_position+cnv_size, y = 2, xend = length, yend = 2), color = "black", size = 1) +
+              geom_segment(aes(x = cn3_start_position+cnv_size, y = 2, xend = length, yend = 2), color = "black", size = 1) +
+              ylim(-4,4) +
+              ggtitle(graph_name)
+          }
+        }
+        
+        plot_lrc = lrc_data[c(2+m,2+m+2*total_number)]
+        position = c(1:1000)
+        data = cbind(position, plot_lrc)
+        result.plot = melt(data, "position")
+        plot2 = ggplot(data=result.plot) + 
+          geom_point(aes(position, value, group=variable, color = variable), size = 1) + 
+          theme(legend.position = "none") +
+          ylim(-4,4) 
+        
+        
+        plot_sc = sc_data[1+m]
+        position = c(1:1000)
+        data = cbind(position, plot_sc)
+        result.plot = melt(data, "position")
+        plot3 = ggplot(data=result.plot) + 
+          geom_point(aes(position, value), size = 0.5, color = "red") + 
+          ylim(-4,4) 
+        
+        
+        print(grid.arrange(plot1, plot2, plot3, nrow = 3))
+        dev.off()
+        
+      }
+      print(ori_data_filename)
+      
+    }
+  }
+}
+
+```

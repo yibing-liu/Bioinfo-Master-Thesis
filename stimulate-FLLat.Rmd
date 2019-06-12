@@ -1,0 +1,131 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(openxlsx)
+
+stimulate_dataset_list = loadWorkbook('Stimulate dataset list.xlsx')
+# Renaming sheets to removes spaces in names
+sheetNames = sheets(stimulate_dataset_list)
+sheetNames = lapply(sheetNames, trimws) # Trimming away trailing space
+
+newSheetNames = c()
+for (sheetName in sheetNames) {
+  sheetName = gsub(" ", "_", sheetName)
+  newSheetNames[sheetName] = sheetName 
+}
+sheetNames = newSheetNames
+
+for(i in 1:length(sheetNames)){
+  assign(sheetNames[i],readWorkbook(stimulate_dataset_list,sheet = i))
+}
+
+Control = Control[-1,]
+colnames(Control) = c("control", "total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
+
+Single_CNV = Single_CNV[-1,]
+colnames(Single_CNV) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
+
+CN1_CN3 = CN1_CN3[-1,]
+colnames(CN1_CN3) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
+```
+
+
+```{r}
+install.packages("FLLat")
+library(FLLat)
+```
+control
+```{r}
+data = read.csv(file = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/negative_control.csv", header = TRUE, sep = ",")[,-1]
+data.fllat = data.matrix(data[,-1])
+
+result.bic = FLLat.BIC(data.fllat, J=min(15,floor(ncol(data.fllat)/2)), B="pc", thresh=10^(-5), maxiter=100, maxiter.B=1, maxiter.T=1)
+result = FLLat(data.fllat, lam1=result.bic$lam1, lam2=5, thresh=10^(-5))
+
+output = result$Beta %*% result$Theta
+output = data.frame(output)
+output = cbind(data$position,output)
+colnames(output) = colnames(data)
+
+writeFileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/FLLat/negative_control_FLLat_result.csv"
+write.csv(output, file = writeFileName)
+```
+
+
+```{r}
+for (row_number in 1:nrow(Single_CNV)){
+  length = as.numeric(Single_CNV$length[row_number])
+  cn1_start_position = as.numeric(Single_CNV$cn1_start[row_number])
+  cn3_start_position = as.numeric(Single_CNV$cn3_start[row_number])
+  
+  cnv_size = as.numeric(Single_CNV$cnv_size[row_number])
+  
+  total_number = as.numeric(Single_CNV$total_number_of_samples[row_number])
+  number_no_cnv = as.numeric(Single_CNV$cn2_number_of_samples[row_number])
+  number_cnv_cn1 = as.numeric(Single_CNV$cn1_number_of_samples[row_number])
+  number_cnv_cn3 = as.numeric(Single_CNV$cn3_number_of_samples[row_number])
+  
+  for (n in 1:5){
+    fileName = paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/dataset/SD/SD_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+    
+    data = read.csv(file = fileName, header = TRUE, sep = ",")[,-1]
+    data.fllat = data.matrix(data[,-1])
+    
+    result.bic = FLLat.BIC(data.fllat, J=min(15,floor(ncol(data.fllat)/2)), B="pc", thresh=10^(-5), maxiter=100, maxiter.B=1, maxiter.T=1)
+    
+    result = FLLat(data.fllat, lam1=result.bic$lam1, lam2=5, thresh=10^(-5))
+    
+    output = result$Beta %*% result$Theta
+    output = data.frame(output)
+    output = cbind(data$position,output)
+    colnames(output) = colnames(data)
+    
+    writeFileName = paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/FLLat/SD/SD_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "FLLat_result", sep = "_"), "csv", sep = ".")
+    write.csv(output, file = writeFileName)
+  }
+}
+
+```
+"/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/single cnv/dataset/SD_32_28_0_4_50_run1.csv"
+
+
+cn1 cn3
+```{r}
+for (row_number in 1:nrow(CN1_CN3)){
+  length = as.numeric(CN1_CN3$length[row_number])
+  cn1_start_position = as.numeric(CN1_CN3$cn1_start[row_number])
+  cn3_start_position = as.numeric(CN1_CN3$cn3_start[row_number])
+  
+  cnv_size = as.numeric(CN1_CN3$cnv_size[row_number])
+  
+  total_number = as.numeric(CN1_CN3$total_number_of_samples[row_number])
+  number_no_cnv = as.numeric(CN1_CN3$cn2_number_of_samples[row_number])
+  number_cnv_cn1 = as.numeric(CN1_CN3$cn1_number_of_samples[row_number])
+  number_cnv_cn3 = as.numeric(CN1_CN3$cn3_number_of_samples[row_number])
+  
+  
+  for (n in 1:5){
+    fileName = paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/dataset/CNV13/CNV13_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+    
+    data = read.csv(file = fileName, header = TRUE, sep = ",")[,-1]
+    data.fllat = data.matrix(data[,-1])
+    
+    result.bic = FLLat.BIC(data.fllat, J=min(15,floor(ncol(data.fllat)/2)), B="pc", thresh=10^(-5), maxiter=100, maxiter.B=1, maxiter.T=1)
+    
+    result = FLLat(data.fllat, lam1=result.bic$lam1, lam2=5, thresh=10^(-5))
+    
+    output = result$Beta %*% result$Theta
+    output = data.frame(output)
+    output = cbind(data$position,output)
+    colnames(output) = colnames(data)
+    
+    writeFileName = paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/FLLat/CNV13/CNV13_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "FLLat_result", sep = "_"), "csv", sep = ".")
+    write.csv(output, file = writeFileName)
+  }
+}
+```
+
+

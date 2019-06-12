@@ -1,0 +1,195 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+generate three data frames corresponding to copy number 1 2 3. (python)
+only select corrected logR of cells within mapD range.
+```{r}
+library(ggplot2)
+```
+
+```{r}
+getwd()
+data_cn1 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/Data/combined_logR_corrected_cn123/cn1.txt", sep = "\t", header = FALSE)[4]
+colnames(data_cn1) = "logR"
+data_cn1
+
+data_cn2 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/Data/combined_logR_corrected_cn123/cn2.txt", sep = "\t", header = FALSE)[4]
+colnames(data_cn2) = "logR"
+data_cn2
+
+data_cn3 = read.table("/Users/Yibing/Bioinfo-Master-Thesis/Data/combined_logR_corrected_cn123/cn3.txt", sep = "\t", header = FALSE)[4]
+colnames(data_cn3) = "logR"
+data_cn3
+
+
+
+median(unlist(data_cn1))
+median(unlist(data_cn2))
+median(unlist(data_cn3))
+```
+
+
+```{r}
+boxplot_cn1 = boxplot(data_cn1)
+boxplot_cn2 = boxplot(data_cn2)
+boxplot_cn3 = boxplot(data_cn3)
+
+
+data_cn1_no_outliers["logR"] = as.data.frame(data_cn1$logR[data_cn1$logR>boxplot_cn1$stats[1] & data_cn1$logR<boxplot_cn1$stats[5]])
+data_cn2_no_outliers["logR"] = as.data.frame(data_cn2$logR[data_cn2$logR>boxplot_cn2$stats[1] & data_cn2$logR<boxplot_cn2$stats[5]])
+data_cn3_no_outliers["logR"] = as.data.frame(data_cn3$logR[data_cn3$logR>boxplot_cn3$stats[1] & data_cn3$logR<boxplot_cn3$stats[5]])
+
+boxplot(data_cn1_no_outliers$logR)
+boxplot(data_cn2_no_outliers$logR)
+boxplot(data_cn3_no_outliers$logR)
+```
+
+
+
+
+
+plot logR corresponding to CN1 CN2 CN3
+```{r}
+library(ggplot2)
+```
+
+```{r}
+plot_cn1 = ggplot(data_cn1, aes(logR)) + geom_histogram(binwidth = 0.1) +  labs(x = "logR_cn1", y = "density", color = NULL)
+print(plot_cn1)
+
+plot_cn2 = ggplot(data_cn2, aes(logR)) + geom_histogram(binwidth = 0.1)+  labs(x = "logR_cn2", y = "density", color = NULL)
+print(plot_cn2)
+
+plot_cn3 = ggplot(data_cn3, aes(logR)) + geom_histogram(binwidth = 0.1) +  labs(x = "logR_cn3", y = "density", color = NULL) + 
+print(plot_cn3)
+```
+
+ln(result.normalised/median)
+```{r}
+library(fitdistrplus)
+#descdist(data_cn2$logR, discrete = FALSE, boot = 100)
+
+fit_cn1 = fitdist(data_cn1_no_outliers$logR, "norm") #normal
+fit_cn2 = fitdist(data_cn2_no_outliers$logR, "norm") #normal
+fit_cn3 = fitdist(data_cn3_no_outliers$logR, "norm") #normal
+
+summary(fit_cn1)
+summary(fit_cn2)
+summary(fit_cn3)
+```
+```{r}
+print("CN1 estimate paramaters")
+fit_cn1$estimate
+
+print("CN2 estimate paramaters")
+fit_cn2$estimate
+
+print("CN3 estimate paramaters")
+fit_cn3$estimate
+```
+
+
+
+
+
+
+
+
+
+###########################################################################################
+using bin reads will involve cell specific effects to the system
+broaden the distribution --> leads to overlapping --> worse parameters for stimulation later
+##################################################
+bin reads
+```{r}
+embryoNumber = c(1,2,3,4,5,6,7,8,9,
+                 10,11,12,13,14,15,16,17,18,19,
+                 20,21,22,23,24,25,26,27,28,29,
+                 30,31,32,33,34,35,36,37,38,39,
+                 40,41,42,43,44,45,46,47)
+cellNumber = list(c(1),c(1),c(1,2),c(1,2),c(1),c(1,2,3),c(1,2),c(1,2,3),c(2,3),
+                  c(2,4),c(2,3,4,6,7,9,10),c(1,2,4,7),c(1), c(3,5,6),c(1,2,3),c(1,4),c(2,3,5,7,8,9,10),c(1,2,3,4,5,6,7,8,9,11,12),c(2),
+                  c(1,2,3),c(2,3),c(1,2),c(1),c(1,2,3),c(1,2,3,4),c(3,4,5),c(1,2,3,5),c(1,2),c(1,4),
+                  c(1,2,3,4),c(1),c(3,4,5,6,7,8,9),c(1,2,3,4,5,6,7,8,9,11,12),c(2),c(1,2,3,4),c(1),c(1,2),c(1,2,3,4),c(1,2),
+                  c(7,8,9,10,11,12,13,14,15,17,18,19,21,22,24,25),c(1,2,3,4,5,6,7),c(1,2,3,4,5,7,8),c(1,2,3,4,5,6),c(1,2,4,5,6,7,8,9,10,11,13,14,15,16,17,18,22,24,25,26,28,29,31,32,33,35,36,37,38,39),c(1,2,4,5,8,9,10,11,12,13),c(2,3,5,6,7,8,9,10,11,12,13,15,16,17,18,21,22),c(15,16,17,18,20,21,22,23,24,25,26,27,28,29,30))
+
+data_cn1_reads = data.frame()
+data_cn2_reads = data.frame()
+data_cn3_reads = data.frame()
+
+for (i in 1:length(embryoNumber)){
+  for (n in 1:length(as.numeric(unlist(cellNumber[i])))){
+    rawFileName = paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/raw_counts/TVEMB", (embryoNumber[i])[1], sep = ""), (unlist(cellNumber[i]))[n], sep = "_"), "250K.101.sorted.count-t", sep = ".")  
+    raw_data = read.table(rawFileName, sep = "\t", header = FALSE)
+    raw_data = raw_data[c(1,2,3,6)]
+    colnames(raw_data) = c("chr", "start", "end", "reads")
+    cnFileName = paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/logr_cn_per_bin/TVEMB", (embryoNumber[i])[1], sep = ""), (unlist(cellNumber[i]))[n], sep = "_"), "250K.101.sorted.count.gamma_15.gc_corrected.segments.copynumber.txt", sep = ".")  
+    cn_data = read.table(cnFileName, sep = "\t", header = TRUE)
+    cn_data = cn_data[c(1,2,3,5)]
+    data = merge(raw_data, cn_data)
+    data_cn1_reads = rbind(data_cn1_reads,subset(data, CN_segment == "1"))
+    data_cn2_reads = rbind(data_cn2_reads,subset(data, CN_segment == "2"))
+    data_cn3_reads = rbind(data_cn3_reads,subset(data, CN_segment == "3"))
+  }
+}
+
+dim(data_cn1_reads)
+dim(data_cn2_reads)
+dim(data_cn3_reads)
+```
+
+plot reads density corresponding to copy number 1 2 3
+```{r}
+plot_cn1 = ggplot(data_cn1_reads, aes(reads)) +
+  geom_density() +
+  xlim(0,1500) +
+  labs(x = "cn1_reads", y = "density", color = NULL) 
+print(plot_cn1)
+
+plot_cn2 = ggplot(data_cn2_reads, aes(reads)) + 
+  geom_density() +
+  xlim(0,1500) +
+  labs(x = "cn2_reads", y = "density", color = NULL) 
+print(plot_cn2)
+
+plot_cn3 = ggplot(data_cn3_reads, aes(reads)) + 
+  geom_density() +  
+  xlim(0,1500) +
+  labs(x = "cn3_reads", y = "density", color = NULL) 
+print(plot_cn3)
+
+```
+
+```{r}
+library(fitdistrplus)
+
+descdist(data_cn1_reads$reads, discrete = TRUE, boot = 500)
+fit_cn1 = fitdist(data_cn1_reads$reads, "pois")
+summary(fit_cn1)
+denscomp(list(fit_cn1))
+
+descdist(data_cn2_reads$reads, discrete = TRUE, boot = 500)
+fit_cn2 = fitdist(data_cn2_reads$reads, "pois")
+summary(fit_cn2)
+denscomp(list(fit_cn2))
+
+descdist(data_cn3_reads$reads, discrete = TRUE, boot = 500)
+fit_cn3 = fitdist(data_cn3_reads$reads, "pois")
+summary(fit_cn3)
+denscomp(list(fit_cn3))
+```
+
+```{r}
+summary(fit_cn1)
+#       estimate Std. Error
+#lambda 63.74629 0.01802465
+summary(fit_cn2)
+#       estimate  Std. Error
+#lambda 114.2031 0.007269994
+summary(fit_cn3)
+#       estimate Std. Error
+#lambda   159.33 0.04413308
+
+
+```

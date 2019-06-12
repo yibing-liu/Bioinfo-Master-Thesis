@@ -11,22 +11,41 @@ mean          sd
 [1] "CN3 estimate paramaters"
 mean        sd 
 0.4942913 0.5122417 
+
+#no outlier
+[1] "CN1 estimate paramaters"
+mean         sd 
+-0.8269323  0.5603306 
+[1] "CN2 estimate paramaters"
+mean         sd 
+0.01823383 0.41483619 
+[1] "CN3 estimate paramaters"
+mean        sd 
+0.5264469 0.4293003 
+
+
+median
+[1] -0.8121366
+[1] 0.0372875
+[1] 0.5410726
 ################SET BASIC PARAMETERS##################
 ```{r}
 #normal distribution parameters
-mean_cn1 = -0.9047569
-mean_cn2 = -0.01629146
-mean_cn3 = 0.4942913
+mean_cn1 = -0.8269323
+mean_cn2 = 0.01823383
+mean_cn3 = 0.5264469
 
-sd_cn1 = 0.7468480
-sd_cn2 = 0.49248766
-sd_cn3 = 0.5122417
-
+sd_cn1 = 0.5603306
+sd_cn2 = 0.41483619
+sd_cn3 = 0.4293003
 ```
+
 ```{r}
 library(openxlsx)
+library(reshape)
+library(ggplot2)
 
-stimulate_dataset_list = loadWorkbook('Stimulate dataset list.xlsx')
+stimulate_dataset_list = loadWorkbook('stimulate_dataset_list.xlsx')
 # Renaming sheets to removes spaces in names
 sheetNames = sheets(stimulate_dataset_list)
 sheetNames = lapply(sheetNames, trimws) # Trimming away trailing space
@@ -44,20 +63,22 @@ for(i in 1:length(sheetNames)){
 }
 
 Control = Control[-1,]
-colnames(Control) = c("control", "total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cnv_start", "cnv_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cnv_start", "cnv_end")
+colnames(Control) = c("control", "total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
 
 Single_CNV = Single_CNV[-1,]
-colnames(Single_CNV) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cnv_start", "cnv_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cnv_start", "cnv_end")
+colnames(Single_CNV) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
 
 CN1_CN3 = CN1_CN3[-1,]
-colnames(CN1_CN3) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cnv_start", "cnv_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cnv_start", "cnv_end")
+colnames(CN1_CN3) = c("total_number_of_samples", "length", "cn2_number_of_samples", "cn2_proportion", "cn1_number_of_samples", "cn1_proportion", "cnv_size", "size_proportion", "cn1_start", "cn1_end",  "cn3_number_of_samples", "cn3_proportion", "cnv_size", "size_proportion", "cn3_start", "cn3_end")
 ```
 
 #single cnv
 ```{r}
-for (row_number in 2:dim(Single_CNV)[1]){
+for (row_number in 1:nrow(Single_CNV)){
   length = as.numeric(Single_CNV$length[row_number])
-  cnv_start_position = as.numeric(Single_CNV$cnv_start[row_number])
+  cn1_start_position = as.numeric(Single_CNV$cn1_start[row_number])
+  cn3_start_position = as.numeric(Single_CNV$cn3_start[row_number])
+  
   cnv_size = as.numeric(Single_CNV$cnv_size[row_number])
   
   total_number = as.numeric(Single_CNV$total_number_of_samples[row_number])
@@ -74,51 +95,221 @@ for (row_number in 2:dim(Single_CNV)[1]){
       colnames(stimulate_sample) = column_name
       stimulate_logR = cbind(stimulate_logR, stimulate_sample)
     }
+    
     #cn1 stimulated data
-    for (i in 0:number_cnv_cn1){
-      column_name = paste("sample", number_no_cnv+i, sep = "_")
-      cnv_cn = 1
-      stimulate_segment_before_cnv = data.frame("position" = 1:(cnv_start_position-1), "reads" = rnorm((cnv_start_position-1), mean = mean_cn2, sd = sd_cn2))
-      stimulate_segment_cnv = data.frame("position" = cnv_start_position:(cnv_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn1, sd = sd_cn1))
-      stimulate_segment_after_cnv = data.frame("position" = (cnv_start_position+cnv_size):length, "reads" = rnorm((length-cnv_start_position-cnv_size+1), mean = mean_cn2, sd = sd_cn2))
-      stimulate_sample = rbind(stimulate_segment_before_cnv, stimulate_segment_cnv, stimulate_segment_after_cnv)[2]
-      colnames(stimulate_sample) = column_name
-      stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+    if (number_cnv_cn1 != 0){
+      for (i in 1:number_cnv_cn1){
+        column_name = paste("sample", number_no_cnv+i, sep = "_")
+        cnv_cn = 1
+        if (cn1_start_position!=1){
+          stimulate_segment_before_cnv = data.frame("position" = 1:(cn1_start_position-1), "reads" = rnorm((cn1_start_position-1), mean = mean_cn2, sd = sd_cn2))
+          stimulate_segment_cnv = data.frame("position" = cn1_start_position:(cn1_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn1, sd = sd_cn1))
+          stimulate_segment_after_cnv = data.frame("position" = (cn1_start_position+cnv_size):length, "reads" = rnorm((length-cn1_start_position-cnv_size+1), mean = mean_cn2, sd = sd_cn2))
+          stimulate_sample = rbind(stimulate_segment_before_cnv, stimulate_segment_cnv, stimulate_segment_after_cnv)[2]
+          colnames(stimulate_sample) = column_name
+          stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+        }
+        else{
+          stimulate_segment_cnv = data.frame("position" = cn1_start_position:(cn1_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn1, sd = sd_cn1))
+          stimulate_sample = rbind(stimulate_segment_cnv)[2]
+          colnames(stimulate_sample) = column_name
+          stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+        }
+      }
     }
     #cn3 stimulated data
-    for (i in 0:number_cnv_cn3){
-      column_name = paste("sample", number_no_cnv+number_cnv_cn1+i, sep = "_")
-      cnv_cn = 3
-      stimulate_segment_before_cnv = data.frame("position" = 1:(cnv_start_position-1), "reads" = rnorm((cnv_start_position-1), mean = mean_cn2, sd = sd_cn2))
-      stimulate_segment_cnv = data.frame("position" = cnv_start_position:(cnv_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn1, sd = sd_cn1))
-      stimulate_segment_after_cnv = data.frame("position" = (cnv_start_position+cnv_size):length, "reads" = rnorm((length-cnv_start_position-cnv_size+1), mean = mean_cn2, sd = sd_cn2))
-      stimulate_sample = rbind(stimulate_segment_before_cnv, stimulate_segment_cnv, stimulate_segment_after_cnv)[2]
-      colnames(stimulate_sample) = column_name
-      stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+    if (number_cnv_cn3 != 0){
+      for (i in 1:number_cnv_cn3){
+        column_name = paste("sample", number_no_cnv+number_cnv_cn1+i, sep = "_")
+        cnv_cn = 3
+        if (cn3_start_position!=1){
+          stimulate_segment_before_cnv = data.frame("position" = 1:(cn3_start_position-1), "reads" = rnorm((cn3_start_position-1), mean = mean_cn2, sd = sd_cn2))
+          stimulate_segment_cnv = data.frame("position" = cn3_start_position:(cn3_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn3, sd = sd_cn3))
+          stimulate_segment_after_cnv = data.frame("position" = (cn3_start_position+cnv_size):length, "reads" = rnorm((length-cn3_start_position-cnv_size+1), mean = mean_cn2, sd = sd_cn2))
+          stimulate_sample = rbind(stimulate_segment_before_cnv, stimulate_segment_cnv, stimulate_segment_after_cnv)[2]
+          colnames(stimulate_sample) = column_name
+          stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+        }
+        else{
+          stimulate_segment_cnv = data.frame("position" = cn3_start_position:(cn3_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn3, sd = sd_cn3))
+          stimulate_sample = rbind(stimulate_segment_cnv)[2]
+          colnames(stimulate_sample) = column_name
+          stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+        }
+      }
     }
-    
-    writeFileName = paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/SD_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
-    writeFileName
+    writeFileName = paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/SD_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
     write.csv(stimulate_logR, file = writeFileName)
   }
 }
-
-
-
 ```
 
 
-#"/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/"
+#cn1 cn3
+```{r}
+for (row_number in 1:nrow(CN1_CN3)){
+  length = as.numeric(CN1_CN3$length[row_number])
+  cn1_start_position = as.numeric(CN1_CN3$cn1_start[row_number])
+  cn3_start_position = as.numeric(CN1_CN3$cn3_start[row_number])
+  
+  cnv_size = as.numeric(CN1_CN3$cnv_size[row_number])
+  
+  total_number = as.numeric(CN1_CN3$total_number_of_samples[row_number])
+  number_no_cnv = as.numeric(CN1_CN3$cn2_number_of_samples[row_number])
+  number_cnv_cn1 = as.numeric(CN1_CN3$cn1_number_of_samples[row_number])
+  number_cnv_cn3 = as.numeric(CN1_CN3$cn3_number_of_samples[row_number])
+  
+  for (n in 1:5){
+    stimulate_logR = data.frame("position" = 1:length)
+    #no cnv stimulated data
+    for (i in 1:number_no_cnv){
+      column_name = paste("sample", i, sep = "_")
+      stimulate_sample = as.data.frame(rnorm(length, mean = mean_cn2, sd = sd_cn2))
+      colnames(stimulate_sample) = column_name
+      stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+    }
+    #cn1 stimulated data
+    if (number_cnv_cn1 != 0){
+      for (i in 1:number_cnv_cn1){
+        column_name = paste("sample", number_no_cnv+i, sep = "_")
+        cnv_cn = 1
+        if (cn1_start_position!=1){
+          stimulate_segment_before_cnv = data.frame("position" = 1:(cn1_start_position-1), "reads" = rnorm((cn1_start_position-1), mean = mean_cn2, sd = sd_cn2))
+          stimulate_segment_cnv = data.frame("position" = cn1_start_position:(cn1_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn1, sd = sd_cn1))
+          stimulate_segment_after_cnv = data.frame("position" = (cn1_start_position+cnv_size):length, "reads" = rnorm((length-cn1_start_position-cnv_size+1), mean = mean_cn2, sd = sd_cn2))
+          stimulate_sample = rbind(stimulate_segment_before_cnv, stimulate_segment_cnv, stimulate_segment_after_cnv)[2]
+          colnames(stimulate_sample) = column_name
+          stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+        }
+        else{
+          stimulate_segment_cnv = data.frame("position" = cn1_start_position:(cn1_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn1, sd = sd_cn1))
+          stimulate_sample = rbind(stimulate_segment_cnv)[2]
+          colnames(stimulate_sample) = column_name
+          stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+        }
+      }
+    }
+    #cn3 stimulated data
+    if (number_cnv_cn3 != 0){
+      for (i in 1:number_cnv_cn3){
+        column_name = paste("sample", number_no_cnv+number_cnv_cn1+i, sep = "_")
+        cnv_cn = 3
+        if (cn3_start_position!=1){
+          stimulate_segment_before_cnv = data.frame("position" = 1:(cn3_start_position-1), "reads" = rnorm((cn3_start_position-1), mean = mean_cn2, sd = sd_cn2))
+          stimulate_segment_cnv = data.frame("position" = cn3_start_position:(cn3_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn3, sd = sd_cn3))
+          stimulate_segment_after_cnv = data.frame("position" = (cn3_start_position+cnv_size):length, "reads" = rnorm((length-cn3_start_position-cnv_size+1), mean = mean_cn2, sd = sd_cn2))
+          stimulate_sample = rbind(stimulate_segment_before_cnv, stimulate_segment_cnv, stimulate_segment_after_cnv)[2]
+          colnames(stimulate_sample) = column_name
+          stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+        }
+        else{
+          stimulate_segment_cnv = data.frame("position" = cn3_start_position:(cn3_start_position+cnv_size-1), "reads" = rnorm((cnv_size), mean = mean_cn3, sd = sd_cn3))
+          stimulate_sample = rbind(stimulate_segment_cnv)[2]
+          colnames(stimulate_sample) = column_name
+          stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+        }
+      }
+    }
+    writeFileName = paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/CNV13_",total_number,sep = ""), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+    write.csv(stimulate_logR, file = writeFileName)
+  }
+}
+```
+
+control
+```{r}
+length = 1000
+#negative control
+stimulate_logR = data.frame("position" = 1:length)
+for (i in 1:32){
+  column_name = paste("sample", i, sep = "_")
+  stimulate_sample = as.data.frame(rnorm(length, mean = mean_cn2, sd = sd_cn2))
+  colnames(stimulate_sample) = column_name
+  stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+}
+
+writeFileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/negative_control.csv"
+write.csv(stimulate_logR, file = writeFileName)
+
+#cn1 control
+stimulate_logR = data.frame("position" = 1:length)
+for (i in 1:32){
+  column_name = paste("sample", i, sep = "_")
+  stimulate_sample = as.data.frame(rnorm(length, mean = mean_cn1, sd = sd_cn1))
+  colnames(stimulate_sample) = column_name
+  stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+}
+
+writeFileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/positive_control_cn1.csv"
+write.csv(stimulate_logR, file = writeFileName)
+
+#cn3 control
+stimulate_logR = data.frame("position" = 1:length)
+for (i in 1:32){
+  column_name = paste("sample", i, sep = "_")
+  stimulate_sample = as.data.frame(rnorm(length, mean = mean_cn3, sd = sd_cn3))
+  colnames(stimulate_sample) = column_name
+  stimulate_logR = cbind(stimulate_logR, stimulate_sample)
+}
+
+writeFileName = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/positive_control_cn3.csv"
+write.csv(stimulate_logR, file = writeFileName)
+```
 
 
-```{r fig.height=16, fig.width=12}
+
+
+
+##########tester plot#####
+```{r}
 library(reshape)
 library(ggplot2)
-result.plot = melt(stimulate_logR, "position")
+filename =   "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/SD_16_8_0_8_750_run1.csv"
+data = read.csv(file = filename, header = TRUE, sep = ",")
+data = data[dim(data)[2]]
+position = c(1:1000)
+data = cbind(position, data)
+
+result.plot = melt(data, "position")
+
 
 ggplot(data=result.plot) + 
-  geom_point(aes(position, value, group=variable, color = variable)) + 
+  geom_point(aes(position, value), size = 1) +
+  geom_segment(aes(x = 1, y = 0.0372875, xend = 150, yend = 0.0372875), color = "red") +
+  geom_segment(aes(x = 151, y = 0.5410726, xend = 850, yend = 0.5410726), color = "red") +
+  geom_segment(aes(x = 851, y = 0.0372875, xend = 1000, yend = 0.0372875), color = "red") +
   ylim(-5,5) 
+
+grid.arrange(plot, plot, plot, nrow = 3)
+
+
+?grid.arrange
+
+library(gridExtra)
+
+lrc_filename = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/Data/lrc_SD_2_1_0_1_100_run2.csv"
+data_pla_lrc = read.csv(file = lrc_filename, header = FALSE, sep = ",")
+data_pla_lrc = data_pla_lrc[dim(data_pla_lrc)[2]]
+position = c(1:1000)
+data_pla_lrc = cbind(position, data_pla_lrc)
+
+result.plot = melt(data_pla_lrc, "position")
+
+ggplot(data=result.plot) + 
+  geom_point(aes(position, value, group=variable, color = variable), size = 0.05) + 
+  ylim(-5,5) 
+
+lrc_filename =  "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/sparse component/0.8/SD/sc_0.8_SD_32_4_28_0_500_run1.csv"
+data_pla_lrc = read.csv(file = lrc_filename, header = FALSE, sep = ",")
+data_pla_lrc = data_pla_lrc[dim(data_pla_lrc)[2]]
+position = c(1:1000)
+data_pla_lrc = cbind(position, data_pla_lrc)
+
+result.plot = melt(data_pla_lrc, "position")
+
+ggplot(data=result.plot) + 
+  geom_point(aes(position, value, group=variable, color = variable), size = 0.05) + 
+  ylim(-1,1) 
 
 ```
 
@@ -126,4 +317,8 @@ ggplot(data=result.plot) +
 
 #piecewise constant fitting
 
+```{r}
+sum(unlist(as.numeric(CN1_CN3$total_number_of_samples)))
 
+
+```
