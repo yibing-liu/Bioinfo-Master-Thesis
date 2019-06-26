@@ -62,9 +62,7 @@ colnames(false_positive_result) =  c("total_number", "cn2", "cn1", "cn3", "cnv_s
 
 ```{r}
 library(ggplot2)
-```
 
-```{r}
 cnv_number = c("1","3")
 parameter = c("0.2", "0.4", "0.6")
 gamma = c("9", "12", "15")
