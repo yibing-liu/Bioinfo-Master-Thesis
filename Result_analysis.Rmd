@@ -1,0 +1,94 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+# TRUE POSITIVES
+```{r}
+tp_filename = "/Users/Yibing/Bioinfo-Master-Thesis/Thesis/result/true_positive.txt"
+true_positive = read.table(tp_filename, sep=",", header = FALSE)[-1]
+colnames(true_positive) = c("total_number", "cn2", "cn1", "cn3", "cnv_size", "parameter", "gamma", "total_correct", "total_cnv", "percentage")
+true_positive_result = data.frame(matrix(ncol = 8, nrow = 0))
+colnames(true_positive_result) = c("total_number", "cnv", "cnv_size", "parameter", "gamma", "total_correct", "total_cnv", "percentage")
+```
+
+```{r}
+total_number = c("2", "4", "8", "16")
+cnv_number = c("1","3")
+cnv_size = c("20", "50", "100", "500", "750", "1000")
+parameter = c("0.2", "0.4", "0.6")
+gamma = c("9", "12", "15")
+
+for (i in total_number){
+  for (j in cnv_number){
+    for (k in cnv_size){
+      for (l in parameter){
+        for (m in gamma){
+          if (j=="1"){
+            subset = subset(true_positive, 
+                            true_positive$cn1!="0"&
+                              true_positive$total_number==i&
+                              true_positive$cnv_size==k&
+                              true_positive$parameter==l&
+                              true_positive$gamma==m)
+            result = c(i, j, k, l, m, sum(subset$total_correct), sum(subset$total_cnv), sum(subset$total_correct)/sum(subset$total_cnv) )
+            true_positive_result[nrow(true_positive_result) + 1,] = result
+          }
+          if (j=="3"){
+            subset = subset(true_positive, 
+                            true_positive$cn3!="0"&
+                              true_positive$total_number==i&
+                              true_positive$cnv_size==k&
+                              true_positive$parameter==l&
+                              true_positive$gamma==m)
+            result = c(i, j, k, l, m, sum(subset$total_correct), sum(subset$total_cnv), sum(subset$total_correct)/sum(subset$total_cnv) )
+            true_positive_result[nrow(true_positive_result) + 1,] = result
+          }
+        }
+      }
+    }
+  }
+}
+
+true_positive_result
+```
+
+
+# FALSE POSITIVE
+```{r}
+fp_filename = "/Users/Yibing/Bioinfo-Master-Thesis/Thesis/result/false_positive.txt"
+false_positive_result = read.table(fp_filename, sep=",", header = FALSE)
+colnames(false_positive_result) =  c("total_number", "cn2", "cn1", "cn3", "cnv_size", "false_cnv_length", "logR", "parameter", "gamma")
+```
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+cnv_number = c("1","3")
+parameter = c("0.2", "0.4", "0.6")
+gamma = c("9", "12", "15")
+
+for (i in cnv_number){
+  for (j in parameter){
+    for(k in gamma){
+      if (i=="1"){
+        subset = subset(false_positive_result, false_positive_result$cn1!="0")
+      }
+      if (i=="3"){
+        subset = subset(false_positive_result, false_positive_result$cn3!="0")
+      }
+      subset_plot = subset(subset, subset$parameter==j&subset$gamma==k)
+      title = paste("cn=",i,"parameter=",j,"gamma=",k)
+      plot = ggplot(subset_plot, aes(subset_plot$false_cnv_length)) +
+        geom_histogram(binwidth = 1) + 
+        xlim(0,200) +
+        labs(x = "False CNV size", y = "Counts", color = NULL) +
+        ggtitle(title) +
+        theme(legend.position = "bottom")
+      print(plot)
+    }
+  }
+}
+
+```
