@@ -24,7 +24,9 @@ PLA
 
 shared single cnv
 ```{r}
+
 parameter_pla = c(0.2, 0.4, 0.6)
+parameter=0.2
 gamma = 15
 #data_pla_control_cn1 = read.csv(file = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/low rank component/0.3/Control/lrc_0.3_positive_control_cn1.csv", header = FALSE, sep = ",")
 #data_pla_control_cn3 = read.csv(file = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/low rank component/0.3/Control/lrc_0.3_positive_control_cn3.csv", header = FALSE, sep = ",")
@@ -35,19 +37,21 @@ for (parameter in parameter_pla){
   CN_ref =2
   ploidy = CN_ref/2^LogRlev
   
-  for (row_number in 1:nrow(Single_CNV)){
-    length = as.numeric(Single_CNV$length[row_number])
-    cn1_start_position = as.numeric(Single_CNV$cn1_start[row_number])
-    cn3_start_position = as.numeric(Single_CNV$cn3_start[row_number])
+  for (row_number in 1:1){
+    length = 1000#as.numeric(Single_CNV$length[row_number])
+    cn1_start_position = 250#as.numeric(Single_CNV$cn1_start[row_number])
+    cn3_start_position = 749#as.numeric(Single_CNV$cn3_start[row_number])
     
-    cnv_size = as.numeric(Single_CNV$cnv_size[row_number])
-    total_number = as.numeric(Single_CNV$total_number_of_samples[row_number])
-    number_no_cnv = as.numeric(Single_CNV$cn2_number_of_samples[row_number])
-    number_cnv_cn1 = as.numeric(Single_CNV$cn1_number_of_samples[row_number])
-    number_cnv_cn3 = as.numeric(Single_CNV$cn3_number_of_samples[row_number])
-    
+    cnv_size = 500#as.numeric(Single_CNV$cnv_size[row_number])
+    total_number = 32#as.numeric(Single_CNV$total_number_of_samples[row_number])
+    number_no_cnv = 16#as.numeric(Single_CNV$cn2_number_of_samples[row_number])
+    number_cnv_cn1 = 16#as.numeric(Single_CNV$cn1_number_of_samples[row_number])
+    number_cnv_cn3 = 0#as.numeric(Single_CNV$cn3_number_of_samples[row_number])
+    totalCorrect = 0
     for (n in 1:5){
-      lrc_filename = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result/", "lrc", sep = "/"), parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      
+      lrc_filename = "/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/test_32/lrc_0.2_SD_32_16_16_0_500_run1.csv"
+      #paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result/", "lrc", sep = "/"), parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
       data_pla_lrc = read.csv(file = lrc_filename, header = FALSE, sep = ",")
       position = c(1:1000)
       data_pla_lrc = cbind(position, data_pla_lrc)
@@ -88,23 +92,39 @@ for (parameter in parameter_pla){
         }
       }
       
-      for (i in 1:total_number){
+      for (i in number_no_cnv+1:total_number){
         data_pla_sample = data_pla_lrc[i+1]
         sdev=getMad(data_pla_sample,k=25)
         res=selectFastPcf(as.numeric(unlist(data_pla_sample)),3,gamma*sdev,T)
-        segments=res$yhat #  segments=res$yhat      
-        #plot(segments)
+        segments=res$yhat  
         data_pla_lrc[c(paste(paste("sample", i, sep = "_"), "cn_cal", sep = "_"))] = pmax(round(2^(segments+log(ploidy,2))),0)
+        correct = 0
+        for (j in cn1_start_position:(cn1_start_position+cnv_size-1)){
+          #print(j)
+          if(as.list(pmax(round(2^(segments+log(ploidy,2))),0))[j] == 1){
+            correct = correct+1
+          }
+        }
+        if (correct >= cnv_size*0.9){
+          totalCorrect = totalCorrect+1
+        }
       }
-      writeFileName = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result_seg/lrc", sep = "/"), parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
-      write.csv(data_pla_lrc, file = writeFileName)
+      #writeFileName = paste(paste(paste(paste(paste(paste(paste(paste(paste(paste(paste("/Users/Yibing/Bioinfo-Master-Thesis/Data/stimulate data/PLA/Result_seg/lrc", sep = "/"), parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), "run", sep = "_"), n, sep = ""), "csv", sep = ".")
+      #write.csv(data_pla_lrc, file = writeFileName)
+      #print(lrc_filename)
       
-      print(lrc_filename)
-      
+      line =paste(paste(paste(paste(paste(paste(paste(paste("PLA", parameter, sep = "_"), "SD", sep = "_"), total_number,sep = "_"), number_no_cnv,sep = "_"), number_cnv_cn1, sep = "_"), number_cnv_cn3, sep = "_"), cnv_size, sep = "_"), totalCorrect, sep = " ") 
+      line
     }
   }
 }
+
+line
+#write(line, file = "", append = TRUE)
 ```
+
+
+
 shared CN1&3
 
 ```{r}
